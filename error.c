@@ -18,10 +18,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 static PyObject *pcapError;
 static PyObject *error_object;
 
-int init_errors(PyObject *d)
+void init_errors(PyObject *d)
 {
-  int i;
-
   /* the base class */
   pcapError = PyErr_NewException("pcapc.error", NULL, NULL);
   PyDict_SetItemString(d, "error", pcapError);
@@ -30,10 +28,11 @@ int init_errors(PyObject *d)
   error_object = PyErr_NewException("pcapc.EXCEPTION",pcapError,NULL);
   Py_INCREF(error_object);
   PyDict_SetItemString(d, "EXCEPTION", error_object);
+  return;
 
 } 
 
-int set_error(int error_code, char *error_message)
+void set_error(int error_code, char *error_message)
 {
 /*
     PyErr_SetString(PyExc_IOError, error_message);

@@ -19,7 +19,12 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 #include "pypcap.h"
 
 static char ebuf[PCAP_ERRBUF_SIZE];
+#if 0
+/* this was required with LBL libpcap but is evidently not required with
+   or even present in the new libpcap that comes with RH 7.2
+ */
 void linux_restore_ifr(void);
+#endif
 
 
 static int check_ctx(pcapObject *self);
@@ -36,7 +41,10 @@ static int check_ctx(pcapObject *self)
   return 0;
 }
 
+/*
 pcapObject *new_pcapObject(char *device, int snaplen, int promisc, int to_ms)
+*/
+pcapObject *new_pcapObject(void)
 {
   pcapObject *self;
 
@@ -54,8 +62,10 @@ void delete_pcapObject(pcapObject *self)
     pcap_dump_close(self->pcap_dumper);
   if (self->pcap)
     pcap_close(self->pcap);
+#if 0
 #ifdef __linux
-  linux_restore_ifr;
+  linux_restore_ifr();
+#endif
 #endif
 
   free(self);
@@ -87,6 +97,25 @@ void pcapObject_dump_open(pcapObject *self, char *fname)
   if (!self->pcap_dumper)
     throw_exception(1, "pcap_dump_open");
 }
+
+
+#if 0
+void pcapObject_setnonblock(pcapObject *self, int nonblock)
+{
+  if (pcap_setnonblock(self->pcap, nonblock, ebuf)<0)
+    throw_exception(1,ebuf);
+}
+
+int pcapObject_getnonblock(pcapObject *self)
+{
+  int status;
+
+  status=pcap_getnonblock(self->pcap, buf);
+  if (status<0)
+    throw_exception(1,ebuf);
+  return status;
+}
+#endif
 
 
 
@@ -129,7 +158,7 @@ void pcapObject_loop(pcapObject *self, int cnt, PyObject *PyObj)
 }
 
 
-int pcapObject_dispatch(pcapObject *self, int cnt, PyObject *PyObj)
+void pcapObject_dispatch(pcapObject *self, int cnt, PyObject *PyObj)
 {
   int status;
 
@@ -143,7 +172,7 @@ int pcapObject_dispatch(pcapObject *self, int cnt, PyObject *PyObj)
 
   /* is this necessary, or is it a memory leak? */
   Py_INCREF(PyObj);
-  return status;
+  return;
 }
 
 
@@ -154,7 +183,7 @@ PyObject *pcapObject_next(pcapObject *self)
   PyObject *outObject;
 
   if (check_ctx(self))
-    return;
+    return NULL;
 
   buf = pcap_next(self->pcap, &header);
   
@@ -168,7 +197,7 @@ PyObject *pcapObject_next(pcapObject *self)
 int pcapObject_datalink(pcapObject *self)
 {
   if (check_ctx(self))
-    return;
+    return 0;
 
   return pcap_datalink(self->pcap);
 }
@@ -179,7 +208,7 @@ int pcapObject_datalink(pcapObject *self)
 int pcapObject_snapshot(pcapObject *self)
 {
   if (check_ctx(self))
-    return;
+    return 0;
 
   return pcap_snapshot(self->pcap);
 }
@@ -188,7 +217,7 @@ int pcapObject_snapshot(pcapObject *self)
 int pcapObject_is_swapped(pcapObject *self)
 {
   if (check_ctx(self))
-    return;
+    return 0;
 
   return pcap_is_swapped(self->pcap);
 }
@@ -197,7 +226,7 @@ int pcapObject_is_swapped(pcapObject *self)
 int pcapObject_major_version(pcapObject *self)
 {
   if (check_ctx(self))
-    return;
+    return 0;
 
   return pcap_major_version(self->pcap);
 }
@@ -206,7 +235,7 @@ int pcapObject_major_version(pcapObject *self)
 int pcapObject_minor_version(pcapObject *self)
 {
   if (check_ctx(self))
-    return;
+    return 0;
 
   return pcap_minor_version(self->pcap);
 }
@@ -218,7 +247,7 @@ PyObject *pcapObject_stats(pcapObject *self)
   PyObject *outTuple;
 
   if (check_ctx(self))
-    return;
+    return NULL;
 
   /* pcap_stats always returns 0, no need to check */
   pcap_stats(self->pcap, &pstat);
@@ -236,7 +265,7 @@ FILE *pcapObject_file(pcapObject *self)
 {
 
   if (check_ctx(self))
-    return;
+    return NULL;
 
   return pcap_file(self->pcap);
   
@@ -247,7 +276,7 @@ FILE *pcapObject_file(pcapObject *self)
 int pcapObject_fileno(pcapObject *self)
 {
   if (check_ctx(self))
-    return;
+    return 0;
 
   return pcap_fileno(self->pcap);
 }

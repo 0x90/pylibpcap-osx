@@ -29,15 +29,15 @@ void throw_exception(int err, char *ebuf)
   snprintf(errbuf, PCAP_ERRBUF_SIZE, "[Errno %d] %s\n", err, ebuf);
 }
 
-void clear_exception()
+void clear_exception(void)
 {
         error_status = 0;
 }
 
-int check_exception()
+int check_exception(void)
 {
   return error_status;
-#ifdef OLDCRAP
+#if 0
         if (error_status) {
           return error_code;
         }
@@ -47,7 +47,7 @@ int check_exception()
 #endif
 }
 
-char *get_exception_message()
+char *get_exception_message(void)
 {
     if (error_status) {
       return errbuf;

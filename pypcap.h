@@ -26,16 +26,21 @@ typedef struct {
 /*
 pcapObject *new_pcapObject(char *device, int snaplen, int promisc, int to_ms);
 */
-pcapObject *new_pcapObject();
+pcapObject *new_pcapObject(void);
 void delete_pcapObject(pcapObject *self);
 void pcapObject_open_live(pcapObject *self, char *device, int snaplen,
                           int promisc, int to_ms);
 void pcapObject_open_offline(pcapObject *self, char *fname);
 void pcapObject_dump_open(pcapObject *self, char *fname);
+#if 0
+/* adding in some tcpdump.org libpcap enhancements */
+void pcapObject_setnonblock(pcapObject *self, int nonblock);
+int pcapObject_getnonblock(pcapObject *self);
+#endif
 void pcapObject_setfilter(pcapObject *self, char *str,
                           int optimize, int netmask);
 PyObject *pcapObject_next(pcapObject *self);
-int pcapObject_dispatch(pcapObject *self, int cnt, PyObject *PyObj);
+void pcapObject_dispatch(pcapObject *self, int cnt, PyObject *PyObj);
 void pcapObject_loop(pcapObject *self, int cnt, PyObject *PyObj);
 int pcapObject_datalink(pcapObject *self);
 int pcapObject_snapshot(pcapObject *self);
@@ -56,4 +61,13 @@ void pcapObject_setfilter(pcapObject *self, char *str,
 void PythonCallBack(u_char *PyFunc,
                     const struct pcap_pkthdr *header,
                     const u_char *packetdata);
+
+/* error support fuctions */
+void throw_exception(int err, char *ebuf);
+void clear_exception(void);
+int check_exception(void);
+char *get_exception_message(void);
+
+void init_errors(PyObject *d);
+void set_error(int error_code, char *error_message);
 
