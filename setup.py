@@ -56,7 +56,7 @@ class pcap_build_ext(build_ext):
           return new_sources
   
       swig = self.find_swig()
-      swig_cmd = [swig, "-python", "-dnone", "-shadow", "-ISWIG"]
+      swig_cmd = [swig, "-python", "-shadow", "-ISWIG"]
       if self.swig_cpp:
           swig_cmd.append("-c++")
   
@@ -74,8 +74,15 @@ class pcap_build_ext(build_ext):
       return new_sources
 
   # swig_sources ()
+#
 
+# uncomment this line and comment out the next one if you want to build
+# pcap.c from the SWIG interface
+#sourcefiles = ["pcap.i"]
+sourcefiles = ["pcap.c"]
 
+# other source files
+sourcefiles +=  ["pcap_interface.c","exception.c","error.c"]
 
 setup (# Distribution meta-data
         name = "pylibpcap",
@@ -92,10 +99,8 @@ setup (# Distribution meta-data
         # platforms = "",
         py_modules = [ "pcap" ],
         ext_modules = [ Extension(
-                            "pcapcmodule",
-# change pcap.c to pcap.i in the following line if you want to build
-# pcap.c from the SWIG interface
-                            ["pcap.c","pcap_interface.c","exception.c","error.c"],
+                            "_pcapmodule",
+                            sourcefiles,
                             include_dirs=["/usr/local/include"],
                             extra_objects=[],
                             libraries=["pcap",],
