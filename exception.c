@@ -14,46 +14,28 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 #include <stdlib.h>
 #include <pcap.h>
-
-static char errbuf[PCAP_ERRBUF_SIZE];
-static int error_code = 0;
-static int error_status = 0;
+#include <Python.h>
+#include "pypcap.h"
 
 void throw_exception(int err, char *ebuf)
 {
-  error_code = err;
-  error_status=1;
-
   if (err == -1) {
-    strncpy(errbuf, ebuf, PCAP_ERRBUF_SIZE);
-    strncat(errbuf, "\n", PCAP_ERRBUF_SIZE);
-  } else
-    snprintf(errbuf, PCAP_ERRBUF_SIZE, "[Errno %d] %s\n", err, ebuf);
+    PyErr_SetString(PyExc_Exception, ebuf);
+  } else {
+    PyErr_Format(PyExc_Exception, "[Error %d] %s", err, ebuf);
+  }
 }
 
-void clear_exception(void)
+void throw_pcap_exception(pcap_t *pcap, char *fname)
 {
-        error_status = 0;
+  PyObject *errorArgs;
+  
+  if (fname == NULL)
+    errorArgs = Py_BuildValue("(s)", pcap_geterr(pcap));
+  else
+    errorArgs = Py_BuildValue("(ss)", pcap_geterr(pcap), fname);
+  PyErr_SetObject(pcapError, errorArgs);
+  Py_DECREF(errorArgs);
 }
 
-int check_exception(void)
-{
-  return error_status;
-#if 0
-        if (error_status) {
-          return error_code;
-        }
-        else {
-          return 0;
-        }
-#endif
-}
-
-char *get_exception_message(void)
-{
-    if (error_status) {
-      return errbuf;
-    }
-    else return NULL;
-}
 
