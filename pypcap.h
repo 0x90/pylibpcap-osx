@@ -1,6 +1,6 @@
 
 /*
- * $Id: pypcap.h,v 1.11 2004/06/10 18:24:42 wiml Exp $
+ * $Id: pypcap.h,v 1.12 2004/12/03 21:10:39 wiml Exp $
  * Python libpcap
  * Copyright (C) 2001,2002 David Margrave
  * Based PY-libpcap (C) 1998, Aaron L. Rhodes
@@ -14,6 +14,8 @@
  */
 
 #include <pcap.h>
+#include <sys/types.h>
+#include <netinet/in.h>
 
 /* the pcap class */
 typedef struct {
