@@ -1,6 +1,6 @@
 
 /*
- * $Id: pcap.i,v 1.10 2004/04/26 00:17:36 wiml Exp $
+ * $Id: pcap.i,v 1.11 2004/04/27 02:39:14 wiml Exp $
  * Python libpcap
  * Copyright (C) 2001,2002, David Margrave
  * Based PY-libpcap (C) 1998, Aaron L. Rhodes
@@ -66,9 +66,7 @@ for dltname, dltvalue in _pcap.DLT.items():
 }
 
 
-
-
-%except (python) {
+%exception {
   int err;
   clear_exception();
   $function
@@ -81,8 +79,6 @@ for dltname, dltvalue in _pcap.DLT.items():
   }
 }
 
-
-
 typedef struct {
   pcap_t *pcap;
   DOC(pcapObject_pcap_set,"set pcapObject pcap attribute")
@@ -90,9 +86,6 @@ typedef struct {
   pcap_dumper_t *pcap_dumper;
   DOC(pcapObject_pcap_dumper_set,"set pcapObject pcap_dumper attribute")
   DOC(pcapObject_pcap_dumper_get,"get pcapObject pcap_dumper attribute")
-  PyObject *callback;
-  DOC(pcapObject_callback_set,"set pcapObject callback attribute")
-  DOC(pcapObject_callback_get,"get pcapObject callback attribute")
   %extend {
     pcapObject(void);
     DOC(new_pcapObject,"create a pcapObject instance")
@@ -145,10 +138,6 @@ PyObject *findalldevs(int unpack=1);
 DOC(findalldevs,findalldevs_doc)
 PyObject *lookupnet(char *device);
 DOC(lookupnet,lookupnet_doc)
-void PythonCallBack(u_char *PyFunc,
-                    const struct pcap_pkthdr *header,
-                    const u_char *packetdata);
-DOC(PythonCallBack,"internal function - do not use")
 
 /* useful non-pcap functions */
 PyObject *aton(char *cp);
