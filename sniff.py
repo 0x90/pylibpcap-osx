@@ -1,4 +1,4 @@
-#!/usr/bin/python.debug
+#!/usr/bin/python
 
 import sys
 import pcap
@@ -14,18 +14,23 @@ def dumphex(s):
     #return string.join(bytes, ' ')
     return bytes
 
-def print_packet(pkt):
-  eth_dst = pkt[:6]
-  eth_src = pkt[6:12]
-  print time.asctime(time.localtime(time.time()))
-  print "%s -> %s" % (string.join(dumphex(eth_src),':'),
+def print_packet(pktlen, data, timestamp):
+  print '%f' % timestamp
+  print time.asctime(time.localtime(timestamp))
+  print 'captured %d bytes of %d-byte packet' % (len(data),pktlen)
+  if (data):
+    eth_dst = data[:6]
+    eth_src = data[6:12]
+    print "%s -> %s" % (string.join(dumphex(eth_src),':'),
                       string.join(dumphex(eth_dst),':'))
-  data = pkt[12:]
-  print ' %s' % string.join(dumphex(data),' ')
+    print ' %s' % string.join(dumphex(data[12:]),' ')
 
 
-def packet_callback (plen, pkt):
-  print_packet(pkt)
+def packet_callback (pktlen, data, timestamp):
+  # pktlen is the actual size of the packet observed on the wire
+  # data is a string of caplen bytes containing the data actually captured
+  # timestamp is a float value
+  print_packet(pktlen, data, timestamp)
 
 
 if __name__=='__main__':
@@ -38,7 +43,7 @@ if __name__=='__main__':
   dev = sys.argv[1]
   net, mask = pcap.lookupnet(dev)
   # note:  to_ms does nothing on linux
-  p.open_live(dev, 1500, 0, 100)
+  p.open_live(dev, 64, 0, 100)
   #p.dump_open('dumpfile')
   p.setfilter(string.join(sys.argv[2:],' '), 0, 0)
 
@@ -54,12 +59,11 @@ if __name__=='__main__':
     #  p.dispatch(0, None)
 
     # the loop method is another way of doing things
-    #  p.loop(0, packet_callback)
+    #  p.loop(1, packet_callback)
 
     # as is the next() method
-    #  pkt, hdr = p.next()
-    #  if pkt:
-    #    print_packet(pkt)
+    # p.next() returns a (pktlen, data, timestamp) tuple 
+    #  apply(print_packet,p.next())
   except KeyboardInterrupt:
     print '%s' % sys.exc_type
     print 'shutting down'

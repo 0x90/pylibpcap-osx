@@ -12,7 +12,7 @@ but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. 
 */
 
-#include <pcap/pcap.h>
+#include <pcap.h>
 
 /* the pcap class */
 typedef struct {
@@ -35,7 +35,7 @@ void pcapObject_dump_open(pcapObject *self, char *fname);
 void pcapObject_setfilter(pcapObject *self, char *str,
                           int optimize, int netmask);
 PyObject *pcapObject_next(pcapObject *self);
-void pcapObject_dispatch(pcapObject *self, int cnt, PyObject *PyObj);
+int pcapObject_dispatch(pcapObject *self, int cnt, PyObject *PyObj);
 void pcapObject_loop(pcapObject *self, int cnt, PyObject *PyObj);
 int pcapObject_datalink(pcapObject *self);
 int pcapObject_snapshot(pcapObject *self);

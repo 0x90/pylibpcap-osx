@@ -72,7 +72,7 @@ typedef struct {
     /* maybe change netmask to a bpf_u_32, but need a typemap */
     void setfilter(char *str, int optimize, int netmask);
     void loop(int cnt, PyObject *PyObj);
-    void dispatch(int cnt, PyObject *PyObj);
+    int dispatch(int cnt, PyObject *PyObj);
     PyObject *next(void);
     int datalink(void);
     int snapshot(void);

@@ -129,7 +129,7 @@ void pcapObject_loop(pcapObject *self, int cnt, PyObject *PyObj)
 }
 
 
-void pcapObject_dispatch(pcapObject *self, int cnt, PyObject *PyObj)
+int pcapObject_dispatch(pcapObject *self, int cnt, PyObject *PyObj)
 {
   int status;
 
@@ -143,33 +143,24 @@ void pcapObject_dispatch(pcapObject *self, int cnt, PyObject *PyObj)
 
   /* is this necessary, or is it a memory leak? */
   Py_INCREF(PyObj);
+  return status;
 }
 
 
 PyObject *pcapObject_next(pcapObject *self)
 {
-  struct pcap_pkthdr hdr;
+  struct pcap_pkthdr header;
   const unsigned char *buf;
-  PyObject *outTuple;
-  PyObject *hdrTuple;
+  PyObject *outObject;
 
   if (check_ctx(self))
     return;
 
-  buf = pcap_next(self->pcap, &hdr);
+  buf = pcap_next(self->pcap, &header);
   
-  outTuple=PyTuple_New(2);
-  hdrTuple=PyTuple_New(3);
-  PyTuple_SetItem(outTuple, 0, Py_BuildValue("s#", buf, hdr.caplen));
-
-  PyTuple_SetItem(hdrTuple, 0, Py_BuildValue("i", hdr.ts.tv_sec));
-  PyTuple_SetItem(hdrTuple, 1, Py_BuildValue("i", hdr.ts.tv_usec));
-  PyTuple_SetItem(hdrTuple, 2, Py_BuildValue("i", hdr.len));
-
-  PyTuple_SetItem(outTuple, 1, hdrTuple);
-
-
-  return outTuple;
+  outObject = Py_BuildValue("is#f", header.len, buf, header.caplen,
+			    header.ts.tv_sec*1.0+header.ts.tv_usec*1.0/1e6);
+  return outObject;
 
 }
 
@@ -311,13 +302,12 @@ PyObject *lookupnet(char *device)
  * It is passed as the function callback for libpcap.
  */
 
-void PythonCallBack(u_char *PyObj,
-                    const struct pcap_pkthdr *header,
+void PythonCallBack(u_char *PyObj, 
+                    const struct pcap_pkthdr *header, 
                     const u_char *packetdata)
 {
   pcapObject *self;
   PyObject *func, *arglist;
-  unsigned int *len;
 
   self = (pcapObject *)PyObj;
 
@@ -325,10 +315,10 @@ void PythonCallBack(u_char *PyObj,
     return;
 
   if (PyCallable_Check(self->callback)) {
-    len    = (unsigned int *)&header->len;
     func = self->callback;
-    arglist = Py_BuildValue("is#",*len,packetdata,*len);
-    PyObject_CallObject(func,arglist);
+    arglist = Py_BuildValue("is#f", header->len, packetdata, header->caplen,
+			    header->ts.tv_sec*1.0+header->ts.tv_usec*1.0/1e6);
+    PyObject_CallObject(func, arglist);
     Py_DECREF(arglist);
   }
   else if (self->pcap_dumper) {
