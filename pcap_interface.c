@@ -30,6 +30,10 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 #define INET6_ADDRSTRLEN 46
 #endif
 
+#ifndef MAX
+#define MAX(a,b) ((a)>(b)?(a):(b))
+#endif
+
 #if 0
 /* this was required with LBL libpcap but is evidently not required with
    or even present in the new libpcap that comes with RH 7.2
@@ -41,7 +45,10 @@ void linux_restore_ifr(void);
 static int check_ctx(pcapObject *self);
 static int pcapObject_invoke(pcapObject *self, int cnt, PyObject *PyObj,
 			     int (*f)(pcap_t *, int, pcap_handler, u_char *));
-
+static
+void PythonCallBack(u_char *user_data,
+                    const struct pcap_pkthdr *header,
+                    const u_char *packetdata);
 
 struct pythonCallBackContext {
   PyObject *func;
@@ -124,7 +131,7 @@ void pcapObject_dump_open(pcapObject *self, char *fname)
     pcap_dump_close(self->pcap_dumper);
   self->pcap_dumper = pcap_dump_open(self->pcap, fname);
   if (!self->pcap_dumper)
-    throw_exception(errno, "pcap_dump_open");
+    throw_pcap_exception(self->pcap, "pcap_dump_open");
 }
 
 
@@ -135,7 +142,7 @@ void pcapObject_setnonblock(pcapObject *self, int nonblock)
   if (check_ctx(self))
     return;
   if (pcap_setnonblock(self->pcap, nonblock, ebuf)<0)
-    throw_exception(-1, ebuf);
+    throw_pcap_exception(self->pcap, "pcap_setnonblock");
 }
 
 int pcapObject_getnonblock(pcapObject *self)
@@ -162,13 +169,13 @@ void pcapObject_setfilter(pcapObject *self, char *str,
 
   status = pcap_compile(self->pcap, &bpfprog, str, optimize, (bpf_u_int32)netmask);
   if (status) {
-    throw_exception(status, "pcap_compile");
+    throw_pcap_exception(self->pcap, "pcap_compile");
     return;
   }
 
   status = pcap_setfilter(self->pcap, &bpfprog);
   if (status) 
-    throw_exception(status,"pcap_setfilter");
+    throw_pcap_exception(self->pcap, "pcap_setfilter");
 }
 
 
@@ -192,7 +199,7 @@ int pcapObject_invoke(pcapObject *self, int cnt, PyObject *PyObj,
   struct pythonCallBackContext callbackContextBuf;
 
   if (check_ctx(self))
-    return;
+    return -1;
 
   if (PyCallable_Check(PyObj)) {
     callback = PythonCallBack;
@@ -204,7 +211,7 @@ int pcapObject_invoke(pcapObject *self, int cnt, PyObject *PyObj,
     callback_arg = self->pcap_dumper;
   } else {
     throw_exception(-1, "argument must be a callable object, or None to invoke dumper");
-    return;
+    return -1;
   }
 
   status=(*f)(self->pcap, cnt, callback, callback_arg);
@@ -215,7 +222,7 @@ int pcapObject_invoke(pcapObject *self, int cnt, PyObject *PyObj,
     return status;
   }
   if (status<0) {
-    throw_exception(status, pcap_geterr(self->pcap));
+      throw_pcap_exception(self->pcap, NULL);
     return status;
   }
   return status;
@@ -249,6 +256,40 @@ int pcapObject_datalink(pcapObject *self)
     return 0;
 
   return pcap_datalink(self->pcap);
+}
+
+PyObject *pcapObject_datalinks(pcapObject *self)
+{
+  int *links;
+  int linkcount, i;
+  PyObject *result;
+
+  if (check_ctx(self))
+    return NULL;
+
+  links = NULL;
+  linkcount = pcap_list_datalinks(self->pcap, &links);
+  if (linkcount < 0) {
+    throw_pcap_exception(self->pcap, "list_datalinks");
+    return NULL;
+  }
+
+  result = PyTuple_New(linkcount);
+  if (!result) {
+    free(links);
+    return NULL;
+  }
+  for(i = 0; i < linkcount; i ++) {
+    PyObject *linktype = PyInt_FromLong( (long) (links[i]) );
+    if (!linktype) {
+      Py_DECREF(result);
+      free(links);
+      return NULL;
+    }
+    PyTuple_SET_ITEM(result, i, linktype);  /* consumes a reference to linktype */
+  }
+  free(links);
+  return result;
 }
 
 int pcapObject_snapshot(pcapObject *self)
