@@ -1,6 +1,6 @@
 
 /*
- * $Id: pypcap.h,v 1.9 2004/04/27 04:50:17 wiml Exp $
+ * $Id: pypcap.h,v 1.10 2004/06/07 05:25:12 wiml Exp $
  * Python libpcap
  * Copyright (C) 2001,2002 David Margrave
  * Based PY-libpcap (C) 1998, Aaron L. Rhodes
@@ -41,6 +41,7 @@ PyObject *pcapObject_next(pcapObject *self);
 int pcapObject_dispatch(pcapObject *self, int cnt, PyObject *PyObj);
 void pcapObject_loop(pcapObject *self, int cnt, PyObject *PyObj);
 int pcapObject_datalink(pcapObject *self);
+PyObject *pcapObject_datalinks(pcapObject *self);
 int pcapObject_snapshot(pcapObject *self);
 int pcapObject_is_swapped(pcapObject *self);
 int pcapObject_major_version(pcapObject *self);
@@ -57,21 +58,14 @@ char *lookupdev(void);
 PyObject *lookupnet(char *device);
 void pcapObject_setfilter(pcapObject *self, char *str,
                           int optimize, int netmask);
-static
-void PythonCallBack(u_char *PyFunc,
-                    const struct pcap_pkthdr *header,
-                    const u_char *packetdata);
 
 /* useful non-pcap functions */
 PyObject *aton(char *cp);
 char *ntoa(int addr);
 
 /* error support fuctions */
+extern PyObject *pcapError;
+void init_errors(PyObject *module);
 void throw_exception(int err, char *ebuf);
-void clear_exception(void);
-int check_exception(void);
-char *get_exception_message(void);
-
-void init_errors(PyObject *d);
-void set_error(int error_code, char *error_message);
+void throw_pcap_exception(pcap_t *pcap, char *fname);
 
