@@ -1,0 +1,16 @@
+
+To complile, you will need the Python include files, the libpcap include files
+and library, as well as the tool SWIG (see http://www.swig.org for more
+information).
+
+To run the sample program 'sniff.py', specify the interface name and 
+filter expression on the command line like so:
+
+[root@linuxbox pylibpcap]# ./sniff.py eth0 tcp port 80 
+
+The documentation is a bit lacking at this point, but the sameple program
+and libpcap man page should get you going.
+
+David Margrave
+davidma@eskimo.com
+
