@@ -460,6 +460,32 @@ PyObject *lookupnet(char *device)
   return outTuple;
 }
 
+PyObject *aton(char *cp)
+{
+  PyObject *out;
+  struct in_addr addr;
+  int status;
+
+  status=inet_aton(cp, &addr);
+  if (!status) {
+    throw_exception(errno, "inet_aton()");
+    return NULL;
+  }
+  out=PyInt_FromLong(addr.s_addr);
+  return out;
+  
+}
+
+char *ntoa(int addr)
+{
+  struct in_addr in;
+  in.s_addr=addr;
+  return inet_ntoa(in);  
+}
+
+
+
+
 
 /*
  * This function matches the prototype of a libpcap callback function.

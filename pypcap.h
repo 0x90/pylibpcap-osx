@@ -61,6 +61,10 @@ void PythonCallBack(u_char *PyFunc,
                     const struct pcap_pkthdr *header,
                     const u_char *packetdata);
 
+/* useful non-pcap functions */
+PyObject *aton(char *cp);
+char *ntoa(int addr);
+
 /* error support fuctions */
 void throw_exception(int err, char *ebuf);
 void clear_exception(void);

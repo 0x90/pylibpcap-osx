@@ -79,7 +79,57 @@ class pcapObjectPtr(pcapObject):
         self.__class__ = pcapObject
 pcapc.pcapObject_swigregister(pcapObjectPtr)
 pcap_doc = pcapc.pcap_doc
+pcapObject_open_live_doc = pcapc.pcapObject_open_live_doc
+pcapObject_open_dead_doc = pcapc.pcapObject_open_dead_doc
+pcapObject_open_offline_doc = pcapc.pcapObject_open_offline_doc
+pcapObject_dump_open_doc = pcapc.pcapObject_dump_open_doc
+pcapObject_setnonblock_doc = pcapc.pcapObject_setnonblock_doc
+pcapObject_getnonblock_doc = pcapc.pcapObject_getnonblock_doc
+pcapObject_setfilter_doc = pcapc.pcapObject_setfilter_doc
+pcapObject_loop_doc = pcapc.pcapObject_loop_doc
+pcapObject_dispatch_doc = pcapc.pcapObject_dispatch_doc
+pcapObject_next_doc = pcapc.pcapObject_next_doc
+pcapObject_datalink_doc = pcapc.pcapObject_datalink_doc
+pcapObject_snapshot_doc = pcapc.pcapObject_snapshot_doc
+pcapObject_is_swapped_doc = pcapc.pcapObject_is_swapped_doc
+pcapObject_major_version_doc = pcapc.pcapObject_major_version_doc
+pcapObject_minor_version_doc = pcapc.pcapObject_minor_version_doc
+pcapObject_stats_doc = pcapc.pcapObject_stats_doc
+pcapObject_fileno_doc = pcapc.pcapObject_fileno_doc
+lookupdev_doc = pcapc.lookupdev_doc
+lookupnet_doc = pcapc.lookupnet_doc
+findalldevs_doc = pcapc.findalldevs_doc
 __doc__ = pcapc.__doc__
+DLT_NULL = pcapc.DLT_NULL
+DLT_EN10MB = pcapc.DLT_EN10MB
+DLT_EN3MB = pcapc.DLT_EN3MB
+DLT_AX25 = pcapc.DLT_AX25
+DLT_PRONET = pcapc.DLT_PRONET
+DLT_CHAOS = pcapc.DLT_CHAOS
+DLT_IEEE802 = pcapc.DLT_IEEE802
+DLT_ARCNET = pcapc.DLT_ARCNET
+DLT_SLIP = pcapc.DLT_SLIP
+DLT_PPP = pcapc.DLT_PPP
+DLT_FDDI = pcapc.DLT_FDDI
+DLT_ATM_RFC1483 = pcapc.DLT_ATM_RFC1483
+DLT_RAW = pcapc.DLT_RAW
+DLT_SLIP_BSDOS = pcapc.DLT_SLIP_BSDOS
+DLT_PPP_BSDOS = pcapc.DLT_PPP_BSDOS
+DLT_ATM_CLIP = pcapc.DLT_ATM_CLIP
+DLT_PPP_SERIAL = pcapc.DLT_PPP_SERIAL
+DLT_PPP_ETHER = pcapc.DLT_PPP_ETHER
+DLT_C_HDLC = pcapc.DLT_C_HDLC
+DLT_CHDLC = pcapc.DLT_CHDLC
+DLT_IEEE802_11 = pcapc.DLT_IEEE802_11
+DLT_LOOP = pcapc.DLT_LOOP
+DLT_LINUX_SLL = pcapc.DLT_LINUX_SLL
+DLT_LTALK = pcapc.DLT_LTALK
+DLT_ECONET = pcapc.DLT_ECONET
+DLT_IPFILTER = pcapc.DLT_IPFILTER
+DLT_PFLOG = pcapc.DLT_PFLOG
+DLT_CISCO_IOS = pcapc.DLT_CISCO_IOS
+DLT_PRISM_HEADER = pcapc.DLT_PRISM_HEADER
+DLT_AIRONET_HEADER = pcapc.DLT_AIRONET_HEADER
 lookupdev = pcapc.lookupdev
 
 findalldevs = pcapc.findalldevs
@@ -87,5 +137,9 @@ findalldevs = pcapc.findalldevs
 lookupnet = pcapc.lookupnet
 
 PythonCallBack = pcapc.PythonCallBack
+
+aton = pcapc.aton
+
+ntoa = pcapc.ntoa
 
 
