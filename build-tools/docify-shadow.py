@@ -43,15 +43,17 @@ for i in xrange (i,len(data)):
 
 methods={}
 for line in pymeths:
-   match=re.search('def.*\(\*args\)',line)
-   if match:
-#     print match.group(0)[4:-7]
-     methname=match.group(0)[4:-7]
-   match=re.search('apply\(.*\)',line)
-   if match:
-#     print match.group(0)[6:-6]
-     fname=match.group(0)[6:-6]
-   methods[methname]=fname
+   methmatch=re.search('def +([^ (]*) *\(\*args\)',line)
+   fnmatch=re.search('\:.*_?pcapc?\.([^(, ]+) *[(,]',line)
+   methname=None
+   fname=None
+   if methmatch: methname=methmatch.group(1)
+   if fnmatch: fname=fnmatch.group(1)
+   if methname and fname:
+     methods[methname]=fname
+   else:
+     # print 'warning: method(%s) fname(%s)\n\tline: %s' % ( methname, fname, line )
+     pass
 
 #print methods
 
