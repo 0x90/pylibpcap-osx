@@ -1,8 +1,8 @@
 #! /usr/bin/env python2
 
-# $Id: setup.py,v 1.7 2004/04/26 00:43:19 wiml Exp $
+# $Id: setup.py,v 1.8 2004/04/27 06:41:41 wiml Exp $
 
-from distutils.command.build import build
+import distutils.command.build
 from distutils.command.build_ext import build_ext
 from distutils.command.clean import clean
 from distutils.core import setup, Extension, Command
@@ -118,6 +118,14 @@ class pcap_build_ext(build_ext):
       return build_ext.find_swig(self)
 #
 
+class build_shadowed (distutils.command.build.build):
+  # this moves the 'build_py' subcommand to the end, so it happens
+  # after the pcap.py module has been created by the build_ext command
+  sub_commands = distutils.command.build.build.sub_commands
+  sub_commands  = filter(lambda x: x[0] != 'build_py', sub_commands) + \
+                  filter(lambda x: x[0] == 'build_py', sub_commands)
+
+
 if libpcap_dir is None:
    pcap_extension = Extension("_pcapmodule",
                               sourcefiles,
@@ -138,7 +146,7 @@ else:
 
 setup (# Distribution meta-data
         name = "pylibpcap",
-        version = "0.4",
+        version = "0.4+CVS",
         licence = "BSD",
         description = 'pylibpcap is a python module for the libpcap packet capture library.',
         long_description = 'pylibpcap is a python module for the libpcap packet capture library.',
@@ -151,6 +159,8 @@ setup (# Distribution meta-data
         # platforms = "",
         py_modules = [ "pcap" ],
         ext_modules = [ pcap_extension ],
-        cmdclass = {'clean': pcapclean, 'build_ext':pcap_build_ext},
+        cmdclass = {'clean': pcapclean,
+                    'build_ext': pcap_build_ext,
+                    'build': build_shadowed},
       )
 
