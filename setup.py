@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python2
 
 from distutils.command.build import build
 from distutils.command.build_ext import build_ext

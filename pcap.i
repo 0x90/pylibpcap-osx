@@ -69,9 +69,8 @@ typedef struct {
     void open_live(char *device, int snaplen, int promisc, int to_ms);
     void open_offline(char *filename);
     void dump_open(char *fname);
-/* tcpdump.org libpcap enhancements */
-    //void setnonblock(int nonblock);
-    //int getnonblock(void);
+    void setnonblock(int nonblock);
+    int getnonblock(void);
     /* maybe change netmask to a bpf_u_32, but need a typemap */
     void setfilter(char *str, int optimize, int netmask);
     void loop(int cnt, PyObject *PyObj);

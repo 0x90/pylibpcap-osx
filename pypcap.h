@@ -32,11 +32,8 @@ void pcapObject_open_live(pcapObject *self, char *device, int snaplen,
                           int promisc, int to_ms);
 void pcapObject_open_offline(pcapObject *self, char *fname);
 void pcapObject_dump_open(pcapObject *self, char *fname);
-#if 0
-/* adding in some tcpdump.org libpcap enhancements */
 void pcapObject_setnonblock(pcapObject *self, int nonblock);
 int pcapObject_getnonblock(pcapObject *self);
-#endif
 void pcapObject_setfilter(pcapObject *self, char *str,
                           int optimize, int netmask);
 PyObject *pcapObject_next(pcapObject *self);

@@ -44,6 +44,10 @@ if __name__=='__main__':
   net, mask = pcap.lookupnet(dev)
   # note:  to_ms does nothing on linux
   p.open_live(dev, 64, 0, 100)
+  p.setnonblock(1)
+  print p.getnonblock()
+  p.setnonblock(0)
+  print p.getnonblock()
   #p.dump_open('dumpfile')
   p.setfilter(string.join(sys.argv[2:],' '), 0, 0)
 

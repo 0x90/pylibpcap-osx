@@ -16,6 +16,12 @@ class pcapObjectPtr :
     def dump_open(self,arg0):
         val = pcapc.pcapObject_dump_open(self.this,arg0)
         return val
+    def setnonblock(self,arg0):
+        val = pcapc.pcapObject_setnonblock(self.this,arg0)
+        return val
+    def getnonblock(self):
+        val = pcapc.pcapObject_getnonblock(self.this)
+        return val
     def setfilter(self,arg0,arg1,arg2):
         val = pcapc.pcapObject_setfilter(self.this,arg0,arg1,arg2)
         return val

@@ -99,9 +99,10 @@ void pcapObject_dump_open(pcapObject *self, char *fname)
 }
 
 
-#if 0
 void pcapObject_setnonblock(pcapObject *self, int nonblock)
 {
+  if (check_ctx(self))
+    return;
   if (pcap_setnonblock(self->pcap, nonblock, ebuf)<0)
     throw_exception(1,ebuf);
 }
@@ -110,12 +111,13 @@ int pcapObject_getnonblock(pcapObject *self)
 {
   int status;
 
-  status=pcap_getnonblock(self->pcap, buf);
+  if (check_ctx(self))
+    return 0;
+  status=pcap_getnonblock(self->pcap, ebuf);
   if (status<0)
     throw_exception(1,ebuf);
   return status;
 }
-#endif
 
 
 
