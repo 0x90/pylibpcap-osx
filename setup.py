@@ -73,7 +73,7 @@ class pcap_build_ext(build_ext):
 
 setup (# Distribution meta-data
         name = "pylibpcap",
-        version = "2.1",
+        version = "0.3.1",
         licence = "BSD",
         description = 'pylibpcap is a python module for the libpcap packet capture library.',
         long_description = 'pylibpcap is a python module for the libpcap packet capture library.',

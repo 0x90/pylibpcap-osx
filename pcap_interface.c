@@ -65,27 +65,27 @@ void delete_pcapObject(pcapObject *self)
 void pcapObject_open_live(pcapObject *self, char *device, int snaplen,
                           int promisc, int to_ms)
 {
-  pcap_t *pcapctx;
+  self->pcap = pcap_open_live(device, snaplen, promisc, to_ms, ebuf);
 
-  pcapctx = pcap_open_live(device, snaplen, promisc, to_ms, ebuf);
-
-  self->pcap= pcapctx;
+  if (!self->pcap)
+    throw_exception(1, "pcap_open_live");
 }
 
 
 void pcapObject_open_offline(pcapObject *self, char *fname)
 {
-  pcap_t *pcapctx;
+  self->pcap = pcap_open_offline(fname, ebuf);
 
-  pcapctx = pcap_open_offline(fname, ebuf);
-
-  self->pcap = pcapctx;
+  if (!self->pcap)
+    throw_exception(1, "pcap_open_offline");
 }
 
 
 void pcapObject_dump_open(pcapObject *self, char *fname)
 {
   self->pcap_dumper = pcap_dump_open(self->pcap, fname);
+  if (!self->pcap_dumper)
+    throw_exception(1, "pcap_dump_open");
 }
 
 

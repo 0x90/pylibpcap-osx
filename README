@@ -1,12 +1,12 @@
 
-pylibpcap-0.3, released 4/23/02
+pylibpcap-0.3.1, released 4/23/02
 
 Thanks to the following people who supplied patches:
 
 - PC Drew for a fix to exception handling in callbacks.
 - Gustavo Carneiro for various fixes to pcap_next() and to handling of
   packet capture lengths. 
-- John Nelson for distutil patch.
+- Jon Nelson for distutil patch.
 
 
 To complile, you will need the Python include files, the libpcap include files

@@ -1,3 +1,4 @@
 include pypcap.h
 include COPYING
 include MANIFEST.in
+recursive-include examples *
