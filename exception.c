@@ -23,10 +23,12 @@ void throw_exception(int err, char *ebuf)
 {
   error_code = err;
   error_status=1;
-/*
-  snprintf(errbuf, PCAP_ERRBUF_SIZE, "pcap_exception %d: %s\n", err, ebuf);
-*/
-  snprintf(errbuf, PCAP_ERRBUF_SIZE, "[Errno %d] %s\n", err, ebuf);
+
+  if (err == -1) {
+    strncpy(errbuf, ebuf, PCAP_ERRBUF_SIZE);
+    strncat(errbuf, "\n", PCAP_ERRBUF_SIZE);
+  } else
+    snprintf(errbuf, PCAP_ERRBUF_SIZE, "[Errno %d] %s\n", err, ebuf);
 }
 
 void clear_exception(void)
