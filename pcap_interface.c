@@ -16,6 +16,9 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 #include <Python.h>
 #include <pcap.h>
 #include <errno.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 #include "pypcap.h"
 
 static char ebuf[PCAP_ERRBUF_SIZE];
@@ -34,8 +37,8 @@ static int check_ctx(pcapObject *self)
 {
   if (!self->pcap) {
     throw_exception(-1,
-                    "pcapObject must be initialized via open_live() "
-                    "or open_offline() methods");
+                    "pcapObject must be initialized via open_live(), "
+                    "open_offline(), or open_dead() methods");
     return 1;
   }
   return 0;
@@ -79,6 +82,14 @@ void pcapObject_open_live(pcapObject *self, char *device, int snaplen,
 
   if (!self->pcap)
     throw_exception(1, "pcap_open_live");
+}
+
+void pcapObject_open_dead(pcapObject *self, int linktype, int snaplen)
+{
+  self->pcap = pcap_open_dead(linktype, snaplen);
+
+  if (!self->pcap)
+    throw_exception(1, "pcap_open_dead");
 }
 
 
@@ -302,6 +313,94 @@ char *lookupdev(void)
   }
 
 }
+
+PyObject *findalldevs(void)
+{
+  pcap_if_t *if_head, *if_current;
+  pcap_addr_t *addr_head, *addr_current;
+  PyObject *out, *addrlist, *addrlist2;
+  struct sockaddr_in *addr;
+  int status;
+
+  status=pcap_findalldevs(&if_head, ebuf);
+  if (status) {
+    throw_exception(errno, ebuf);
+    pcap_freealldevs(if_head);
+    return NULL;
+  }
+
+  out=PyList_New(0);
+  for (if_current=if_head; if_current; if_current=if_current->next) {
+    addrlist=PyList_New(0);
+#if 0
+    /* to avoid problems with tuple-unpacking, make sure that the address
+       tuple always has 4 elements, even if its 4 'None' objects
+     */
+    if (!if_current->addresses) {
+        addrlist2=PyList_New(0);
+        PyList_Append(addrlist2, Py_None);
+        PyList_Append(addrlist2, Py_None);
+        PyList_Append(addrlist2, Py_None);
+        PyList_Append(addrlist2, Py_None);
+        PyList_Append(addrlist, PyList_AsTuple(addrlist2));
+    }
+#endif
+    for (addr_current=if_current->addresses; addr_current; addr_current=addr_current->next) {
+      addrlist2=PyList_New(0);
+      /* addr */
+      if (addr_current->addr) {
+        if (addr_current->addr->sa_family!=AF_INET) 
+          throw_exception(-1,"unknown address family");
+        addr=(struct sockaddr_in *)(addr_current->addr);
+        PyList_Append(addrlist2, Py_BuildValue("s", inet_ntoa(addr->sin_addr)));
+      }
+      else 
+        PyList_Append(addrlist2, Py_None);
+      /* netmask */
+      if (addr_current->netmask) {
+        if (addr_current->netmask->sa_family!=AF_INET)
+          throw_exception(-1,"unknown address family");
+        addr=(struct sockaddr_in *)(addr_current->netmask);
+        PyList_Append(addrlist2, Py_BuildValue("s", inet_ntoa(addr->sin_addr)));
+      }
+      else 
+        PyList_Append(addrlist2, Py_BuildValue("s", NULL));
+      /* broadaddr */
+      if (addr_current->broadaddr) {
+        if (addr_current->broadaddr->sa_family!=AF_INET)
+          throw_exception(-1,"unknown address family");
+        addr=(struct sockaddr_in *)(addr_current->broadaddr);
+        PyList_Append(addrlist2, Py_BuildValue("s", inet_ntoa(addr->sin_addr)));
+      }
+      else 
+        PyList_Append(addrlist2, Py_BuildValue("s", NULL));
+      /* dstaddr */
+      if (addr_current->dstaddr) {
+        if (addr_current->dstaddr->sa_family!=AF_INET)
+          throw_exception(-1,"unknown address family");
+        addr=(struct sockaddr_in *)(addr_current->dstaddr);
+        PyList_Append(addrlist2, Py_BuildValue("s", inet_ntoa(addr->sin_addr)));
+      }
+      else 
+        PyList_Append(addrlist2, Py_BuildValue("s", NULL));
+
+      PyList_Append(addrlist, PyList_AsTuple(addrlist2));
+      Py_Free(addrlist2);
+    }
+    
+    PyList_Append(out, Py_BuildValue("ssNi",
+                                     if_current->name,
+                                     if_current->description,
+                                     PyList_AsTuple(addrlist),
+                                     if_current->flags));
+    Py_Free(addrlist);
+  }
+  
+  pcap_freealldevs(if_head);
+/*  return PyList_AsTuple(out);*/
+  return out;
+}
+
 
 /* warning:  the libpcap that ships with RH 6.2 seems to have a buggy
    pcap_lookupnet */

@@ -67,6 +67,7 @@ typedef struct {
     pcapObject(void);
     ~pcapObject(void);
     void open_live(char *device, int snaplen, int promisc, int to_ms);
+    void open_dead(int linktype, int snaplen);
     void open_offline(char *filename);
     void dump_open(char *fname);
     void setnonblock(int nonblock);
@@ -94,6 +95,7 @@ typedef struct {
 
 /* functions not associated with a pcapObject instance */
 char *lookupdev(void);
+PyObject *findalldevs(void);
 PyObject *lookupnet(char *device);
 void PythonCallBack(u_char *PyFunc,
                     const struct pcap_pkthdr *header,

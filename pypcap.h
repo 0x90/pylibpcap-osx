@@ -30,6 +30,7 @@ pcapObject *new_pcapObject(void);
 void delete_pcapObject(pcapObject *self);
 void pcapObject_open_live(pcapObject *self, char *device, int snaplen,
                           int promisc, int to_ms);
+void pcapObject_open_dead(pcapObject *self, int linktype, int snaplen);
 void pcapObject_open_offline(pcapObject *self, char *fname);
 void pcapObject_dump_open(pcapObject *self, char *fname);
 void pcapObject_setnonblock(pcapObject *self, int nonblock);
@@ -51,6 +52,7 @@ int pcapObject_fileno(pcapObject *self);
 
 
 /* functions that are not methods of pcapObject */
+PyObject *findalldevs(void);
 char *lookupdev(void);
 PyObject *lookupnet(char *device);
 void pcapObject_setfilter(pcapObject *self, char *str,

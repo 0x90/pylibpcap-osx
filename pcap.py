@@ -10,6 +10,9 @@ class pcapObjectPtr :
     def open_live(self,arg0,arg1,arg2,arg3):
         val = pcapc.pcapObject_open_live(self.this,arg0,arg1,arg2,arg3)
         return val
+    def open_dead(self,arg0,arg1):
+        val = pcapc.pcapObject_open_dead(self.this,arg0,arg1)
+        return val
     def open_offline(self,arg0):
         val = pcapc.pcapObject_open_offline(self.this,arg0)
         return val
@@ -89,6 +92,8 @@ class pcapObject(pcapObjectPtr):
 #-------------- FUNCTION WRAPPERS ------------------
 
 lookupdev = pcapc.lookupdev
+
+findalldevs = pcapc.findalldevs
 
 lookupnet = pcapc.lookupnet
 
