@@ -114,6 +114,11 @@
 "datalink()\n\n" \
 "Returns an integer value representing the link layer type (i.e. DLT_EN10MB)"
 
+#define pcapObject_datalinks_doc \
+"datalinks()\n\n" \
+"Returns a tuple of integer values representing the link layer types\n"\
+"avaiable on this interface (i.e. DLT_EN10MB)"
+
 #define pcapObject_snapshot_doc \
 "snapshot()\n\n" \
 "Returns tho snapshot length specificed with open_live was called"
