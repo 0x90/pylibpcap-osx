@@ -78,6 +78,7 @@ class pcapObjectPtr(pcapObject):
         if not hasattr(self,"thisown"): self.thisown = 0
         self.__class__ = pcapObject
 pcapc.pcapObject_swigregister(pcapObjectPtr)
+pcap_doc = pcapc.pcap_doc
 __doc__ = pcapc.__doc__
 lookupdev = pcapc.lookupdev
 

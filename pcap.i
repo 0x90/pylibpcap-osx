@@ -19,7 +19,9 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 static char _doc_##NAME[] = VALUE;\
 %}
 
-#define __doc__ "documentation for pcap module"
+%include doc.i
+
+#define __doc__ pcap_doc
 
 
 %{
