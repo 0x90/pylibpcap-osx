@@ -232,6 +232,11 @@ PyObject *pcapObject_next(pcapObject *self)
 
   buf = pcap_next(self->pcap, &header);
 
+  if (buf == NULL) {
+    Py_INCREF(Py_None);
+    return Py_None;
+  }
+
   outObject = Py_BuildValue("is#f", header.len, buf, header.caplen,
 			    header.ts.tv_sec*1.0+header.ts.tv_usec*1.0/1e6);
   return outObject;
@@ -289,6 +294,10 @@ PyObject *pcapObject_stats(pcapObject *self)
 
   if (check_ctx(self))
     return NULL;
+
+  pstat.ps_recv = 0;
+  pstat.ps_drop = 0;
+  pstat.ps_ifdrop = 0;
 
   /* pcap_stats always returns 0, no need to check */
   pcap_stats(self->pcap, &pstat);
