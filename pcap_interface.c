@@ -431,12 +431,39 @@ string_from_sockaddr_dl(struct sockaddr_dl *sdl)
 
 PyObject *packed_sockaddr(struct sockaddr *sa)
 {
+  int length;
+
   if (sa == NULL) {
     Py_INCREF(Py_None);
     return Py_None;
   }
   
-  return PyString_FromStringAndSize( (const char *)sa, sa->sa_len );
+#if defined(HAVE_SOCKADDR_SA_LEN)
+  length = sa->sa_len;
+#elif defined(SA_LEN)
+  length = SA_LEN(sa);
+#else
+  switch(sa->sa_family) {
+  case AF_INET:
+    length = sizeof(struct sockaddr_in);
+    break;
+#ifdef AF_INET6
+  case AF_INET6:
+    length = sizeof(struct sockaddr_in6);
+    break;
+#endif
+#ifdef AF_LINK
+  case AF_LINK:
+    length = sizeof(struct sockaddr_dl);
+    break;
+#endif
+  default:
+    length = sizeof(struct sockaddr_storage);
+    break;
+  }
+#endif
+
+  return PyString_FromStringAndSize( (const char *)sa, length );
 }
 
 PyObject *object_from_sockaddr(struct sockaddr *sa)
@@ -469,6 +496,7 @@ PyObject *object_from_sockaddr(struct sockaddr *sa)
     break;
 #endif
   default:
+    fprintf(stderr, "at line %d\n", __LINE__);
     throw_exception(-1, "unsupported address family");
     return NULL;
   case AF_UNSPEC:
@@ -489,11 +517,16 @@ PyObject *object_from_sockaddr(struct sockaddr *sa)
   return result;
 }
 
-struct sockaddr *fill_netmask(struct sockaddr *ref, struct sockaddr *sa)
+static
+struct sockaddr *fill_netmask(struct sockaddr *ref, struct sockaddr *sa, void **free_this)
 {
   struct sockaddr *buf;
 
-  if (ref == NULL || sa == NULL || ref->sa_len == 0)
+  if (ref == NULL || sa == NULL)
+    return NULL;
+
+#ifdef HAVE_SOCKADDR_SA_LEN
+  if (ref->sa_len == 0)
     return NULL;
 
   if (sa->sa_family == AF_UNSPEC) {
@@ -501,7 +534,7 @@ struct sockaddr *fill_netmask(struct sockaddr *ref, struct sockaddr *sa)
     char *sap, *bufp;
     int offs;
 
-    buf = malloc(len);
+    buf = *free_this = malloc(len);
     bufp = (unsigned char *)buf;
     sap = (unsigned char *)sa;
     offs = ( (char *)&(buf->sa_data) ) - ( (char *)buf );
@@ -510,12 +543,15 @@ struct sockaddr *fill_netmask(struct sockaddr *ref, struct sockaddr *sa)
       bufp[offs] = ( offs < sa->sa_len )? sap[offs] : 0;
       offs ++;
     }
-  } else {
-    buf = malloc(sa->sa_len);
-    bcopy(sa, buf, sa->sa_len);
-  }
 
-  return buf;
+    return buf;
+  }
+#else
+  if (sa->sa_family == AF_UNSPEC)
+    return NULL;
+#endif
+
+  return sa;
 }
 
 PyObject *findalldevs(int unpack)
@@ -546,16 +582,18 @@ PyObject *findalldevs(int unpack)
 
     for (addr_current = if_current->addresses; addr_current;
 	   addr_current = addr_current->next) {
-      struct sockaddr *filled_mask = fill_netmask(addr_current->addr, addr_current->netmask);
+      struct sockaddr *filled_mask;
+      void *tmp = NULL;
 
+      filled_mask = fill_netmask(addr_current->addr, addr_current->netmask, &tmp);
       addrlist2 = Py_BuildValue("(O&O&O&O&)",
 				 formatter, addr_current->addr, 
 				 formatter, filled_mask,
 				 formatter, addr_current->broadaddr, 
 				 formatter, addr_current->dstaddr);
 
-      if (filled_mask != NULL)
-	free(filled_mask);
+      if (tmp != NULL)
+	free(tmp);
 
       if (addrlist2 == NULL) {
 	Py_DECREF(addrlist);
@@ -642,7 +680,7 @@ void PythonCallBack(u_char *user_data,
   context = (struct pythonCallBackContext *)user_data;
 
   arglist = Py_BuildValue("is#f", header->len, packetdata, header->caplen,
-			  header->ts.tv_sec*1.0+header->ts.tv_usec*1.0/1e6);
+			  header->ts.tv_sec*1.0+header->ts.tv_usec*1.0e-6);
   result = PyObject_CallObject(context->func, arglist);
   Py_DECREF(arglist);
   if (result == NULL) {
