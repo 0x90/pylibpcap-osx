@@ -1,6 +1,6 @@
 
 /*
- * $Id: pypcap.h,v 1.10 2004/06/07 05:25:12 wiml Exp $
+ * $Id: pypcap.h,v 1.11 2004/06/10 18:24:42 wiml Exp $
  * Python libpcap
  * Copyright (C) 2001,2002 David Margrave
  * Based PY-libpcap (C) 1998, Aaron L. Rhodes
@@ -36,7 +36,7 @@ void pcapObject_dump_open(pcapObject *self, char *fname);
 void pcapObject_setnonblock(pcapObject *self, int nonblock);
 int pcapObject_getnonblock(pcapObject *self);
 void pcapObject_setfilter(pcapObject *self, char *str,
-                          int optimize, int netmask);
+                          int optimize, in_addr_t netmask);
 PyObject *pcapObject_next(pcapObject *self);
 int pcapObject_dispatch(pcapObject *self, int cnt, PyObject *PyObj);
 void pcapObject_loop(pcapObject *self, int cnt, PyObject *PyObj);
@@ -56,12 +56,10 @@ int pcapObject_fileno(pcapObject *self);
 PyObject *findalldevs(int unpack);
 char *lookupdev(void);
 PyObject *lookupnet(char *device);
-void pcapObject_setfilter(pcapObject *self, char *str,
-                          int optimize, int netmask);
 
 /* useful non-pcap functions */
 PyObject *aton(char *cp);
-char *ntoa(int addr);
+char *ntoa(in_addr_t addr);
 
 /* error support fuctions */
 extern PyObject *pcapError;

@@ -1,6 +1,6 @@
 
 /*
- * $Id: pcap.i,v 1.13 2004/06/07 05:40:36 wiml Exp $
+ * $Id: pcap.i,v 1.14 2004/06/10 18:24:42 wiml Exp $
  * Python libpcap
  * Copyright (C) 2001,2002, David Margrave
  * Based PY-libpcap (C) 1998, Aaron L. Rhodes
@@ -67,6 +67,22 @@ for dltname, dltvalue in _pcap.DLT.items():
   $1 = $input;
 }
 
+/* functions taking IPv4 addresses as unsigned 32-bit integers */
+%typemap(python, in) in_addr_t {
+  if (PyInt_CheckExact($input)) {
+    $1 = (unsigned long)PyInt_AS_LONG($input);
+  } else if (!PyNumber_Check($input)) {
+    PyErr_SetString(PyExc_TypeError, "argument must be an integer");
+    SWIG_fail;
+  } else {
+    PyObject *longobject = PyNumber_Long($input);
+    if (longobject == NULL) { SWIG_fail; }
+    $1 = PyLong_AsUnsignedLong(longobject);
+    Py_DECREF(longobject);
+    if (PyErr_Occurred()) { SWIG_fail; } /* In case AsUnsignedLong() failed */
+  }
+}
+
 %exception {
   $function
   if(PyErr_Occurred()) {
@@ -92,8 +108,7 @@ typedef struct {
     DOC(pcapObject_setnonblock,pcapObject_setnonblock_doc)
     int getnonblock(void);
     DOC(pcapObject_getnonblock,pcapObject_getnonblock_doc)
-    /* maybe change netmask to a bpf_u_32, but need a typemap */
-    void setfilter(char *str, int optimize, unsigned int netmask);
+    void setfilter(char *str, int optimize, in_addr_t netmask);
     DOC(pcapObject_setfilter,pcapObject_setfilter_doc)
     void loop(int cnt, PyObject *PyObj);
     DOC(pcapObject_loop,pcapObject_loop_doc)
@@ -132,6 +147,6 @@ DOC(lookupnet,lookupnet_doc)
 /* useful non-pcap functions */
 PyObject *aton(char *cp);
 DOC(aton,"aton(addr)\n\nconvert dotted decimal IP string to network byte order int")
-char *ntoa(int addr);
+char *ntoa(in_addr_t addr);
 DOC(ntoa,"ntoa(addr)\n\nconvert network byte order int to dotted decimal IP string")
 
