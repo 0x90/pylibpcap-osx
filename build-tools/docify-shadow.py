@@ -44,7 +44,7 @@ for i in xrange (i,len(data)):
 methods={}
 for line in pymeths:
    methmatch=re.search('def +([^ (]*) *\(\*args\)',line)
-   fnmatch=re.search('\:.*_?pcapc?\.([^(, ]+) *[(,]',line)
+   fnmatch=re.search('\:.*[^_p](_?pcapc?\.[^(, ]+) *[(,]',line)
    methname=None
    fname=None
    if methmatch: methname=methmatch.group(1)
