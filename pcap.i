@@ -49,6 +49,9 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
     set_error(err, get_exception_message());
     return NULL;
   }
+  else if(PyErr_Occurred()) {
+    return NULL;
+  }
 }
 
 
