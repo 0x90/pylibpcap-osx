@@ -112,16 +112,16 @@
 
 #define pcapObject_datalink_doc \
 "datalink()\n\n" \
-"Returns an integer value representing the link layer type (i.e. DLT_EN10MB)"
+"Returns an integer value representing the link layer type (e.g. DLT_EN10MB)"
 
 #define pcapObject_datalinks_doc \
 "datalinks()\n\n" \
 "Returns a tuple of integer values representing the link layer types\n"\
-"avaiable on this interface (i.e. DLT_EN10MB)"
+"available on this interface (e.g. DLT_EN10MB)"
 
 #define pcapObject_snapshot_doc \
 "snapshot()\n\n" \
-"Returns tho snapshot length specificed with open_live was called"
+"Returns the snapshot length specified when open_live was called"
 
 #define pcapObject_is_swapped_doc \
 "is_swapped()\n\n" \
