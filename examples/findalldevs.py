@@ -14,7 +14,7 @@ def test_findalldevs():
         print '  Netmask: %s' % netmask
         print '  Broadcast: %s' % broadaddr
         print '  Peer dest addr: %s' % dstaddr
-      i=i+1
+        i=i+1
     else:
       print ' No addresses'
     print ' flags: %s ' % flags
