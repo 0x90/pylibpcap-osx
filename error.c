@@ -15,27 +15,30 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 #include <pcap.h>
 #include <Python.h>
 
-static PyObject *pcapError;
+/* static */ PyObject *pcapError;
 static PyObject *error_object;
 
-void init_errors(PyObject *d)
+void init_errors(PyObject *m)
 {
+  const char *modname;
+  char *namebuf;
+  PyObject *d;
+
+  d = PyModule_GetDict(m);
+  modname = PyModule_GetName(m);
+  namebuf = malloc(strlen(modname) + 11  /* ".EXCEPTION" + NUL */ );
+
   /* the base class */
-  pcapError = PyErr_NewException("pcapc.error", NULL, NULL);
+  sprintf(namebuf, "%s.error", modname);
+  pcapError = PyErr_NewException(namebuf, NULL, NULL);
   PyDict_SetItemString(d, "error", pcapError);
-  Py_INCREF(pcapError);
 
-  error_object = PyErr_NewException("pcapc.EXCEPTION",pcapError,NULL);
-  Py_INCREF(error_object);
+  sprintf(namebuf, "%s.EXCEPTION", modname);
+  error_object = PyErr_NewException(namebuf,pcapError,NULL);
   PyDict_SetItemString(d, "EXCEPTION", error_object);
-  return;
+  Py_DECREF(error_object);
 
+  free(namebuf);
+  return;
 } 
 
-void set_error(int error_code, char *error_message)
-{
-/*
-    PyErr_SetString(PyExc_IOError, error_message);
-*/
-  PyErr_SetString(error_object, error_message);
-}
