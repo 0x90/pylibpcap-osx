@@ -2,7 +2,7 @@
 /*
 Python libpcap
 Copyright (C) 2001, David Margrave
-Copyright (C) 2003, William Lewis
+Copyright (C) 2003-2004, William Lewis
 Based on PY-libpcap (C) 1998, Aaron L. Rhodes
 
 This program is free software; you can redistribute it and/or
@@ -39,7 +39,14 @@ void linux_restore_ifr(void);
 
 
 static int check_ctx(pcapObject *self);
+static int pcapObject_invoke(pcapObject *self, int cnt, PyObject *PyObj,
+			     int (*f)(pcap_t *, int, pcap_handler, u_char *));
 
+
+struct pythonCallBackContext {
+  PyObject *func;
+  pcap_t *pcap;
+};
 
 static int check_ctx(pcapObject *self)
 {
@@ -62,7 +69,6 @@ pcapObject *new_pcapObject(void)
   self = (pcapObject *)malloc(sizeof(pcapObject));
   self->pcap = NULL;
   self->pcap_dumper=NULL;
-  self->callback=NULL;
 
   return self;
 }
@@ -82,7 +88,6 @@ void delete_pcapObject(pcapObject *self)
   free(self);
 }
 
-
 void pcapObject_open_live(pcapObject *self, char *device, int snaplen,
                           int promisc, int to_ms)
 {
@@ -91,7 +96,7 @@ void pcapObject_open_live(pcapObject *self, char *device, int snaplen,
   self->pcap = pcap_open_live(device, snaplen, promisc, to_ms, ebuf);
 
   if (!self->pcap)
-    throw_exception(1, "pcap_open_live");
+    throw_exception(-1, ebuf);
 }
 
 void pcapObject_open_dead(pcapObject *self, int linktype, int snaplen)
@@ -99,9 +104,8 @@ void pcapObject_open_dead(pcapObject *self, int linktype, int snaplen)
   self->pcap = pcap_open_dead(linktype, snaplen);
 
   if (!self->pcap)
-    throw_exception(1, "pcap_open_dead");
+    throw_exception(errno, "pcap_open_dead failed");
 }
-
 
 void pcapObject_open_offline(pcapObject *self, char *fname)
 {
@@ -110,15 +114,17 @@ void pcapObject_open_offline(pcapObject *self, char *fname)
   self->pcap = pcap_open_offline(fname, ebuf);
 
   if (!self->pcap)
-    throw_exception(1, "pcap_open_offline");
+    throw_exception(-1, ebuf);
 }
 
 
 void pcapObject_dump_open(pcapObject *self, char *fname)
 {
+  if (self->pcap_dumper)
+    pcap_dump_close(self->pcap_dumper);
   self->pcap_dumper = pcap_dump_open(self->pcap, fname);
   if (!self->pcap_dumper)
-    throw_exception(1, "pcap_dump_open");
+    throw_exception(errno, "pcap_dump_open");
 }
 
 
@@ -129,7 +135,7 @@ void pcapObject_setnonblock(pcapObject *self, int nonblock)
   if (check_ctx(self))
     return;
   if (pcap_setnonblock(self->pcap, nonblock, ebuf)<0)
-    throw_exception(1,ebuf);
+    throw_exception(-1, ebuf);
 }
 
 int pcapObject_getnonblock(pcapObject *self)
@@ -141,11 +147,9 @@ int pcapObject_getnonblock(pcapObject *self)
     return 0;
   status=pcap_getnonblock(self->pcap, ebuf);
   if (status<0)
-    throw_exception(1,ebuf);
+    throw_exception(-1, ebuf);
   return status;
 }
-
-
 
 void pcapObject_setfilter(pcapObject *self, char *str,
                           int optimize, int netmask)
@@ -170,39 +174,52 @@ void pcapObject_setfilter(pcapObject *self, char *str,
 
 void pcapObject_loop(pcapObject *self, int cnt, PyObject *PyObj)
 {
-  int status;
-
-  if (check_ctx(self))
-    return;
-
-  self->callback=PyObj;
-  status=pcap_loop(self->pcap,cnt,PythonCallBack,(u_char *)self);
-  if (status<0) 
-    throw_exception(status,pcap_geterr(self->pcap));
-
-  /* is this necessary, or is it a memory leak? */
-  Py_INCREF(PyObj);
-
+  pcapObject_invoke(self, cnt, PyObj, pcap_loop);
 }
 
+int pcapObject_dispatch(pcapObject *self, int cnt, PyObject *PyObj)
+{
+  return pcapObject_invoke(self, cnt, PyObj, pcap_dispatch);
+}
 
-void pcapObject_dispatch(pcapObject *self, int cnt, PyObject *PyObj)
+static
+int pcapObject_invoke(pcapObject *self, int cnt, PyObject *PyObj,
+		      int (*f)(pcap_t *, int, pcap_handler, u_char *))
 {
   int status;
+  pcap_handler callback;
+  void *callback_arg;
+  struct pythonCallBackContext callbackContextBuf;
 
   if (check_ctx(self))
     return;
 
-  self->callback=PyObj;
-  status=pcap_dispatch(self->pcap,cnt,PythonCallBack,(u_char *)self);
-  if (status<0) 
-    throw_exception(status,pcap_geterr(self->pcap));
+  if (PyCallable_Check(PyObj)) {
+    callback = PythonCallBack;
+    callbackContextBuf.func = PyObj;
+    callbackContextBuf.pcap = self->pcap;
+    callback_arg = &callbackContextBuf;
+  } else if(PyObj == Py_None && self->pcap_dumper != NULL) {
+    callback = pcap_dump;
+    callback_arg = self->pcap_dumper;
+  } else {
+    throw_exception(-1, "argument must be a callable object, or None to invoke dumper");
+    return;
+  }
 
-  /* is this necessary, or is it a memory leak? */
-  Py_INCREF(PyObj);
-  return;
+  status=(*f)(self->pcap, cnt, callback, callback_arg);
+
+  /* the pcap(3) man page describes the specal return values -1 and -2 */
+  if (status == -2 && PyErr_Occurred()) {
+    /* pcap_breakloop() was called */
+    return status;
+  }
+  if (status<0) {
+    throw_exception(status, pcap_geterr(self->pcap));
+    return status;
+  }
+  return status;
 }
-
 
 PyObject *pcapObject_next(pcapObject *self)
 {
@@ -214,13 +231,12 @@ PyObject *pcapObject_next(pcapObject *self)
     return NULL;
 
   buf = pcap_next(self->pcap, &header);
-  
+
   outObject = Py_BuildValue("is#f", header.len, buf, header.caplen,
 			    header.ts.tv_sec*1.0+header.ts.tv_usec*1.0/1e6);
   return outObject;
 
 }
-
 
 int pcapObject_datalink(pcapObject *self)
 {
@@ -229,9 +245,6 @@ int pcapObject_datalink(pcapObject *self)
 
   return pcap_datalink(self->pcap);
 }
-
-
-
 
 int pcapObject_snapshot(pcapObject *self)
 {
@@ -460,8 +473,7 @@ PyObject *findalldevs(int unpack)
   pcap_if_t *if_head, *if_current;
   pcap_addr_t *addr_current;
   PyObject *out, *addrlist, *addrlist2, *tmp;
-  struct sockaddr_in *addr;
-  int status, i;
+  int status;
   char ebuf[PCAP_ERRBUF_SIZE];
   PyObject *(*formatter)(struct sockaddr *);
 
@@ -569,28 +581,28 @@ char *ntoa(int addr)
  * It is passed as the function callback for libpcap.
  */
 
-void PythonCallBack(u_char *PyObj, 
+static
+void PythonCallBack(u_char *user_data,
                     const struct pcap_pkthdr *header, 
                     const u_char *packetdata)
 {
-  pcapObject *self;
-  PyObject *func, *arglist;
+  struct pythonCallBackContext *context;
+  PyObject *arglist, *result;
 
-  self = (pcapObject *)PyObj;
+  context = (struct pythonCallBackContext *)user_data;
 
-  if (check_ctx(self))
+  arglist = Py_BuildValue("is#f", header->len, packetdata, header->caplen,
+			  header->ts.tv_sec*1.0+header->ts.tv_usec*1.0/1e6);
+  result = PyObject_CallObject(context->func, arglist);
+  Py_DECREF(arglist);
+  if (result == NULL) {
+    /* An exception was raised by the Python callback */
+    pcap_breakloop(context->pcap);
     return;
-
-  if (PyCallable_Check(self->callback)) {
-    func = self->callback;
-    arglist = Py_BuildValue("is#f", header->len, packetdata, header->caplen,
-			    header->ts.tv_sec*1.0+header->ts.tv_usec*1.0/1e6);
-    PyObject_CallObject(func, arglist);
-    Py_DECREF(arglist);
-  }
-  else if (self->pcap_dumper) {
-    pcap_dump((u_char *)self->pcap_dumper, header, packetdata);
+  } else {
+    /* ignore result (probably None) */
+    Py_DECREF(result);
+    return;
   }
 }
-
 
