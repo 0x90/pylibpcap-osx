@@ -1,6 +1,6 @@
 
 /*
- * $Id: pcap.i,v 1.9 2002/06/13 23:05:14 davidma Exp $
+ * $Id: pcap.i,v 1.10 2004/04/26 00:17:36 wiml Exp $
  * Python libpcap
  * Copyright (C) 2001,2002, David Margrave
  * Based PY-libpcap (C) 1998, Aaron L. Rhodes
@@ -28,15 +28,28 @@ static char _doc_##NAME[] = VALUE;\
 %{
 #include <pcap.h>
 #include "pypcap.h"
+
+#include "constants.c"
 %}
-
-%include constants.i
-
 
 
 %init %{
   /* d is the dictionary for the current module */
   init_errors(d);
+
+  /* the DLT dictionary holds any DLT_* constants available on this platform */
+  {
+    PyObject *dlt = PyDict_New();
+    SWIG_Python_InstallConstants(dlt, pcapmodule_DLT);
+    PyDict_SetItemString(d, "DLT", dlt);
+    Py_DECREF(dlt);
+  }
+
+%}
+
+%pythoncode %{
+for dltname, dltvalue in _pcap.DLT.items():
+  globals()[dltname] = dltvalue
 
 %}
 
@@ -128,7 +141,7 @@ typedef struct {
 /* functions not associated with a pcapObject instance */
 char *lookupdev(void);
 DOC(lookupdev,lookupdev_doc)
-PyObject *findalldevs(void);
+PyObject *findalldevs(int unpack=1);
 DOC(findalldevs,findalldevs_doc)
 PyObject *lookupnet(char *device);
 DOC(lookupnet,lookupnet_doc)
