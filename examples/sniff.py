@@ -24,6 +24,7 @@ def print_packet(pktlen, data, timestamp):
     print "%s -> %s" % (string.join(dumphex(eth_src),':'),
                       string.join(dumphex(eth_dst),':'))
     print ' %s' % string.join(dumphex(data[12:]),' ')
+    print data[52:]
 
 
 def packet_callback (pktlen, data, timestamp):
@@ -43,7 +44,7 @@ if __name__=='__main__':
   dev = sys.argv[1]
   net, mask = pcap.lookupnet(dev)
   # note:  to_ms does nothing on linux
-  p.open_live(dev, 64, 0, 100)
+  p.open_live(dev, 128, 0, 100)
   p.setnonblock(1)
   print p.getnonblock()
   p.setnonblock(0)

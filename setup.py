@@ -64,6 +64,12 @@ class pcap_build_ext(build_ext):
           target = swig_targets[source]
           self.announce("swigging %s to %s" % (source, target))
           self.spawn(swig_cmd + ["-o", target, source])
+
+          self.announce('doc-ifying swig-generated source file %s' % target)
+          self.spawn(['./build-tools/docify.py', target])
+
+          self.announce('doc-ifying swig-generated shadow class file %s' % 'pcap.py')
+          self.spawn(['./build-tools/docify-shadow.py', 'pcap.py'])
   
       return new_sources
 
