@@ -535,8 +535,6 @@ PyObject *object_from_sockaddr(struct sockaddr *sa)
 static
 struct sockaddr *fill_netmask(struct sockaddr *ref, struct sockaddr *sa, void **free_this)
 {
-  struct sockaddr *buf;
-
   if (ref == NULL || sa == NULL)
     return NULL;
 
@@ -546,6 +544,7 @@ struct sockaddr *fill_netmask(struct sockaddr *ref, struct sockaddr *sa, void **
 
   if (sa->sa_family == AF_UNSPEC) {
     int len = MAX(sa->sa_len, ref->sa_len);
+    struct sockaddr *buf;
     char *sap, *bufp;
     int offs;
 
