@@ -1,11 +1,36 @@
 #! /usr/bin/env python2
 
+# $Id: setup.py,v 1.7 2004/04/26 00:43:19 wiml Exp $
+
 from distutils.command.build import build
 from distutils.command.build_ext import build_ext
 from distutils.command.clean import clean
 from distutils.core import setup, Extension, Command
 
 import os
+
+### CONFIGURATION ###
+
+# uncomment this line and comment out the next one if you want to build
+# pcap.c from the SWIG interface
+sourcefiles = ["mk-constants.py", "pcap.i"]
+# sourcefiles = ["pcap.c"]
+
+# if you are building against a non-installed version of libpcap,
+# specify its directory here, otherwise set this to None
+libpcap_dir = None
+# libpcap_dir = "/home/wiml/netsrc/libpcap/libpcap-0.7.2"
+# libpcap_dir = "/home/wiml/netsrc/libpcap/libpcap-0.8.3"
+# libpcap_dir = "/home/wiml/netsrc/libpcap/cvs.tcpdump.org/libpcap"
+
+include_dirs = [ ]
+
+### END OF CONFIGURATION ###
+# You shouldn't need to modify anything below this point unless you're
+# doing development
+
+sourcefiles +=  ["pcap_interface.c","exception.c","error.c"]
+
 
 # I modified build_ext to add -shadow to the swig line.
 # yay!
@@ -21,6 +46,16 @@ class pcapclean(clean):
 #    self.run_command('make_clean')
 
 class pcap_build_ext(build_ext):
+
+  def before_swig_sources(self, sources):
+      new_sources = [ ]
+      for source in sources:
+          if source == 'mk-constants.py':
+              self.make_file( (source,), 'constants.c', execfile, (source,) )
+          else:
+              new_sources.append(source)
+      return new_sources
+    
   def swig_sources(self, sources):
   
       """Walk the list of source files in 'sources', looking for SWIG
@@ -28,6 +63,8 @@ class pcap_build_ext(build_ext):
       return a modified 'sources' list with SWIG source files replaced
       by the generated C (or C++) files.
       """
+
+      sources = self.before_swig_sources(sources)
   
       new_sources = []
       swig_sources = []
@@ -74,15 +111,30 @@ class pcap_build_ext(build_ext):
       return new_sources
 
   # swig_sources ()
+
+  def find_swig(self):
+      if os.environ.has_key('SWIG'):
+          return os.environ['SWIG']
+      return build_ext.find_swig(self)
 #
 
-# uncomment this line and comment out the next one if you want to build
-# pcap.c from the SWIG interface
-#sourcefiles = ["pcap.i"]
-sourcefiles = ["pcap.c"]
+if libpcap_dir is None:
+   pcap_extension = Extension("_pcapmodule",
+                              sourcefiles,
+                              include_dirs = include_dirs,
+                              libraries=["pcap",]
+                              )
+else:
+   libpath = os.path.join(libpcap_dir, 'libpcap.a')
+   include_dirs.append( libpcap_dir )
+   pcap_extension = Extension("_pcapmodule",
+                              sourcefiles,
+                              include_dirs = include_dirs,
+                              extra_objects = [ libpath ]
+                              )
+#
+  
 
-# other source files
-sourcefiles +=  ["pcap_interface.c","exception.c","error.c"]
 
 setup (# Distribution meta-data
         name = "pylibpcap",
@@ -93,19 +145,12 @@ setup (# Distribution meta-data
         url = "http://pylibpcap.sourceforge.net/",
         author = "David Margrave",
         author_email = "davidma@eskimo.com",
-        # maintainer = "",
-        # maintainer_email = "",
+        maintainer = "Wim Lewis",
+        maintainer_email = "wiml@users.sourceforge.net",
         # keywords = "",
         # platforms = "",
         py_modules = [ "pcap" ],
-        ext_modules = [ Extension(
-                            "_pcapmodule",
-                            sourcefiles,
-                            include_dirs=["/usr/local/include"],
-                            extra_objects=[],
-                            libraries=["pcap",],
-                        ) 
-                      ],
+        ext_modules = [ pcap_extension ],
         cmdclass = {'clean': pcapclean, 'build_ext':pcap_build_ext},
       )
 
