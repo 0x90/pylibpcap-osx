@@ -258,6 +258,7 @@ int pcapObject_datalink(pcapObject *self)
   return pcap_datalink(self->pcap);
 }
 
+#ifndef WITHOUT_LIST_DATALINKS
 PyObject *pcapObject_datalinks(pcapObject *self)
 {
   int *links;
@@ -291,6 +292,7 @@ PyObject *pcapObject_datalinks(pcapObject *self)
   free(links);
   return result;
 }
+#endif /* WITHOUT_LIST_DATALINKS */
 
 int pcapObject_snapshot(pcapObject *self)
 {
@@ -698,7 +700,11 @@ void PythonCallBack(u_char *user_data,
   Py_DECREF(arglist);
   if (result == NULL) {
     /* An exception was raised by the Python callback */
+#ifndef WITHOUT_BREAKLOOP
     pcap_breakloop(context->pcap);
+#else
+    /* Unfortunately, there's nothing much we can do here. */
+#endif
     return;
   } else {
     /* ignore result (probably None) */

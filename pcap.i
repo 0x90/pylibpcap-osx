@@ -1,6 +1,6 @@
 
 /*
- * $Id: pcap.i,v 1.14 2004/06/10 18:24:42 wiml Exp $
+ * $Id: pcap.i,v 1.15 2004/07/10 05:33:46 wiml Exp $
  * Python libpcap
  * Copyright (C) 2001,2002, David Margrave
  * Based PY-libpcap (C) 1998, Aaron L. Rhodes
@@ -30,6 +30,11 @@ static char _doc_##NAME[] = VALUE;\
 #include "pypcap.h"
 
 #include "constants.c"
+
+#if defined(WITHOUT_PCAP_LIB_VERSION) && !defined(WITHOUT_VERSION_STRING)
+extern char pcap_version[];
+#endif
+
 %}
 
 
@@ -46,7 +51,13 @@ static char _doc_##NAME[] = VALUE;\
     Py_DECREF(dlt);
   }
 
+#if defined(WITHOUT_PCAP_LIB_VERSION)
+#if !defined(WITHOUT_VERSION_STRING)
+  PyModule_AddStringConstant(m, "version", pcap_version);
+#endif
+#else
   PyModule_AddStringConstant(m, "version", pcap_lib_version());
+#endif
 %}
 
 %pythoncode %{
@@ -118,8 +129,10 @@ typedef struct {
     DOC(pcapObject_next,pcapObject_next_doc)
     int datalink(void);
     DOC(pcapObject_datalink,pcapObject_datalink_doc)
+#ifndef WITHOUT_LIST_DATALINKS
     PyObject *datalinks(void);
     DOC(pcapObject_datalinks,pcapObject_datalinks_doc)
+#endif
     int snapshot(void);
     DOC(pcapObject_snapshot,pcapObject_snapshot_doc)
     int is_swapped(void);
