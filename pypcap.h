@@ -1,16 +1,17 @@
 
 /*
-Python libpcap
-Copyright (C) 2001, David Margrave
-Based PY-libpcap (C) 1998, Aaron L. Rhodes
-
-This program is free software; you can redistribute it and/or
-modify it under the terms of the BSD Licence
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. 
-*/
+ * $Id: pypcap.h,v 1.7 2002/06/14 07:44:28 davidma Exp $
+ * Python libpcap
+ * Copyright (C) 2001,2002 David Margrave
+ * Based PY-libpcap (C) 1998, Aaron L. Rhodes
+ * 
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the BSD Licence
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. 
+ */
 
 #include <pcap.h>
 

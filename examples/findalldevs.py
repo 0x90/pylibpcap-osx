@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 
 import pcap
 
@@ -20,6 +20,5 @@ def test_findalldevs():
     print ' flags: %s ' % flags
 
 if __name__=="__main__":
-  while (1):
-    test_findalldevs()
+  test_findalldevs()
 

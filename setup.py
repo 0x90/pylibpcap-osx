@@ -12,11 +12,11 @@ import os
 
 class pcapclean(clean):
   def run (self):
-    if os.access('pcap.c', os.F_OK):
-      self.announce("removing pcap.c")
-      os.unlink('pcap.c')
-    else:
-      self.warn("'pcap.c' does not exist -- can't clean it")
+#    if os.access('pcap.c', os.F_OK):
+#      self.announce("removing pcap.c")
+#      os.unlink('pcap.c')
+#    else:
+#      self.warn("'pcap.c' does not exist -- can't clean it")
     clean.run (self)
 #    self.run_command('make_clean')
 
@@ -79,7 +79,7 @@ class pcap_build_ext(build_ext):
 
 setup (# Distribution meta-data
         name = "pylibpcap",
-        version = "0.3.1",
+        version = "0.4",
         licence = "BSD",
         description = 'pylibpcap is a python module for the libpcap packet capture library.',
         long_description = 'pylibpcap is a python module for the libpcap packet capture library.',
@@ -93,8 +93,10 @@ setup (# Distribution meta-data
         py_modules = [ "pcap" ],
         ext_modules = [ Extension(
                             "pcapcmodule",
-                            ["pcap.i","pcap_interface.c","exception.c","error.c"],
-                            include_dirs=["/usr/include/pcap"],
+# change pcap.c to pcap.i in the following line if you want to build
+# pcap.c from the SWIG interface
+                            ["pcap.c","pcap_interface.c","exception.c","error.c"],
+                            include_dirs=["/usr/local/include"],
                             extra_objects=[],
                             libraries=["pcap",],
                         ) 
