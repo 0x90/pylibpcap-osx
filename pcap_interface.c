@@ -2,7 +2,8 @@
 /*
 Python libpcap
 Copyright (C) 2001, David Margrave
-Based PY-libpcap (C) 1998, Aaron L. Rhodes
+Copyright (C) 2003, William Lewis
+Based on PY-libpcap (C) 1998, Aaron L. Rhodes
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the BSD Licence
@@ -21,7 +22,14 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 #include <arpa/inet.h>
 #include "pypcap.h"
 
-static char ebuf[PCAP_ERRBUF_SIZE];
+#ifdef AF_LINK
+#include <net/if_dl.h>
+#endif
+
+#if defined(AF_INET6) && !defined(INET6_ADDRSTRLEN)
+#define INET6_ADDRSTRLEN 46
+#endif
+
 #if 0
 /* this was required with LBL libpcap but is evidently not required with
    or even present in the new libpcap that comes with RH 7.2
@@ -78,6 +86,8 @@ void delete_pcapObject(pcapObject *self)
 void pcapObject_open_live(pcapObject *self, char *device, int snaplen,
                           int promisc, int to_ms)
 {
+  char ebuf[PCAP_ERRBUF_SIZE];
+
   self->pcap = pcap_open_live(device, snaplen, promisc, to_ms, ebuf);
 
   if (!self->pcap)
@@ -95,6 +105,8 @@ void pcapObject_open_dead(pcapObject *self, int linktype, int snaplen)
 
 void pcapObject_open_offline(pcapObject *self, char *fname)
 {
+  char ebuf[PCAP_ERRBUF_SIZE];
+
   self->pcap = pcap_open_offline(fname, ebuf);
 
   if (!self->pcap)
@@ -112,6 +124,8 @@ void pcapObject_dump_open(pcapObject *self, char *fname)
 
 void pcapObject_setnonblock(pcapObject *self, int nonblock)
 {
+  char ebuf[PCAP_ERRBUF_SIZE];
+
   if (check_ctx(self))
     return;
   if (pcap_setnonblock(self->pcap, nonblock, ebuf)<0)
@@ -121,6 +135,7 @@ void pcapObject_setnonblock(pcapObject *self, int nonblock)
 int pcapObject_getnonblock(pcapObject *self)
 {
   int status;
+  char ebuf[PCAP_ERRBUF_SIZE];
 
   if (check_ctx(self))
     return 0;
@@ -303,6 +318,7 @@ int pcapObject_fileno(pcapObject *self)
 char *lookupdev(void)
 {
   char *dev;
+  char ebuf[PCAP_ERRBUF_SIZE];
 
   dev = pcap_lookupdev(ebuf);
   if (dev)
@@ -321,6 +337,7 @@ PyObject *findalldevs(void)
   PyObject *out, *addrlist, *addrlist2, *tmp;
   struct sockaddr_in *addr;
   int status, i;
+  char ebuf[PCAP_ERRBUF_SIZE];
 
   status = pcap_findalldevs(&if_head, ebuf);
 
@@ -444,6 +461,7 @@ PyObject *lookupnet(char *device)
   bpf_u_int32 net=0, mask=0;
   PyObject *outTuple;
   int status;
+  char ebuf[PCAP_ERRBUF_SIZE];
 
   status = pcap_lookupnet(device, &net, &mask, ebuf);
 
