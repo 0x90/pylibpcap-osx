@@ -1,6 +1,6 @@
 
 /*
- * $Id: pcap.i,v 1.12 2004/04/27 04:50:17 wiml Exp $
+ * $Id: pcap.i,v 1.13 2004/06/07 05:40:36 wiml Exp $
  * Python libpcap
  * Copyright (C) 2001,2002, David Margrave
  * Based PY-libpcap (C) 1998, Aaron L. Rhodes
@@ -34,8 +34,9 @@ static char _doc_##NAME[] = VALUE;\
 
 
 %init %{
+  /* m is the current module */
   /* d is the dictionary for the current module */
-  init_errors(d);
+  init_errors(m);
 
   /* the DLT dictionary holds any DLT_* constants available on this platform */
   {
@@ -45,6 +46,7 @@ static char _doc_##NAME[] = VALUE;\
     Py_DECREF(dlt);
   }
 
+  PyModule_AddStringConstant(m, "version", pcap_lib_version());
 %}
 
 %pythoncode %{
@@ -65,27 +67,14 @@ for dltname, dltvalue in _pcap.DLT.items():
   $1 = $input;
 }
 
-
 %exception {
-  int err;
-  clear_exception();
   $function
-  if ((err = check_exception())) {
-    set_error(err, get_exception_message());
-    return NULL;
-  }
-  else if(PyErr_Occurred()) {
-    return NULL;
+  if(PyErr_Occurred()) {
+    SWIG_fail;
   }
 }
 
 typedef struct {
-  pcap_t *pcap;
-  DOC(pcapObject_pcap_set,"set pcapObject pcap attribute")
-  DOC(pcapObject_pcap_get,"get pcapObject pcap attribute")
-  pcap_dumper_t *pcap_dumper;
-  DOC(pcapObject_pcap_dumper_set,"set pcapObject pcap_dumper attribute")
-  DOC(pcapObject_pcap_dumper_get,"get pcapObject pcap_dumper attribute")
   %extend {
     pcapObject(void);
     DOC(new_pcapObject,"create a pcapObject instance")
@@ -104,7 +93,7 @@ typedef struct {
     int getnonblock(void);
     DOC(pcapObject_getnonblock,pcapObject_getnonblock_doc)
     /* maybe change netmask to a bpf_u_32, but need a typemap */
-    void setfilter(char *str, int optimize, int netmask);
+    void setfilter(char *str, int optimize, unsigned int netmask);
     DOC(pcapObject_setfilter,pcapObject_setfilter_doc)
     void loop(int cnt, PyObject *PyObj);
     DOC(pcapObject_loop,pcapObject_loop_doc)
@@ -114,6 +103,8 @@ typedef struct {
     DOC(pcapObject_next,pcapObject_next_doc)
     int datalink(void);
     DOC(pcapObject_datalink,pcapObject_datalink_doc)
+    PyObject *datalinks(void);
+    DOC(pcapObject_datalinks,pcapObject_datalinks_doc)
     int snapshot(void);
     DOC(pcapObject_snapshot,pcapObject_snapshot_doc)
     int is_swapped(void);
