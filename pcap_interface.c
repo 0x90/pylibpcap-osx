@@ -280,11 +280,8 @@ PyObject *pcapObject_stats(pcapObject *self)
   /* pcap_stats always returns 0, no need to check */
   pcap_stats(self->pcap, &pstat);
 
-  outTuple=PyTuple_New(3);
-
-  PyTuple_SetItem(outTuple, 0, Py_BuildValue("i", pstat.ps_recv));
-  PyTuple_SetItem(outTuple, 1, Py_BuildValue("i", pstat.ps_drop));
-  PyTuple_SetItem(outTuple, 2, Py_BuildValue("i", pstat.ps_ifdrop));
+  outTuple = Py_BuildValue("(iii)", 
+			   pstat.ps_recv, pstat.ps_drop, pstat.ps_ifdrop);
 
   return outTuple;
 }
@@ -330,7 +327,135 @@ char *lookupdev(void)
 
 }
 
-PyObject *findalldevs(void)
+#ifdef AF_LINK
+
+static PyObject *
+string_from_sockaddr_dl(struct sockaddr_dl *sdl)
+{
+  char *buf;
+  int sdl_len, dlpos, buf_size;
+  PyObject *str;
+  
+  sdl_len = sdl->sdl_alen + sdl->sdl_slen;
+
+  if (sdl_len == 0) {
+    Py_INCREF(Py_None);
+    return(Py_None);
+  }
+
+  buf_size = 3 * sdl_len;
+  buf = malloc(buf_size);
+  
+  for(dlpos = 0; dlpos < sdl_len; dlpos ++) {
+    char *bufpos = buf + (3 * dlpos);
+    unsigned char dlbyte = sdl->sdl_data[sdl->sdl_nlen + dlpos];
+    
+    sprintf(bufpos, "%02x", dlbyte);
+    if (dlpos == sdl_len - 1)
+      bufpos[2] = (char)0;
+    else if (dlpos == sdl->sdl_alen - 1)
+      bufpos[2] = '#';
+    else
+      bufpos[2] = ':';
+  }
+  
+  str = PyString_FromString(buf);
+  free(buf);
+  return str;
+}
+
+#endif /* AF_LINK */
+
+PyObject *packed_sockaddr(struct sockaddr *sa)
+{
+  if (sa == NULL) {
+    Py_INCREF(Py_None);
+    return Py_None;
+  }
+  
+  return PyString_FromStringAndSize( (const char *)sa, sa->sa_len );
+}
+
+PyObject *object_from_sockaddr(struct sockaddr *sa)
+{
+  char *buf;
+  size_t buf_size;
+  void *src;
+  PyObject *result;
+  
+  if (sa == NULL) {
+    Py_INCREF(Py_None);
+    return Py_None;
+  }
+  
+  switch(sa->sa_family) {
+  case AF_INET:
+    src = &(((struct sockaddr_in *)sa) -> sin_addr);
+    buf_size = INET_ADDRSTRLEN;
+    break;
+#ifdef AF_INET6
+  case AF_INET6:
+    src = &(((struct sockaddr_in6 *)sa) -> sin6_addr);
+    buf_size = INET6_ADDRSTRLEN;
+    break;
+#endif
+#ifdef AF_LINK
+  case AF_LINK:
+    result = string_from_sockaddr_dl( (struct sockaddr_dl *)sa );
+    return result;
+    break;
+#endif
+  default:
+    throw_exception(-1, "unsupported address family");
+    return NULL;
+  case AF_UNSPEC:
+    Py_INCREF(Py_None);
+    return Py_None;
+  }
+  
+  buf = malloc(buf_size);
+  if (inet_ntop(sa->sa_family, src, buf, buf_size) == NULL) {
+      free(buf);
+      throw_exception(errno, "cannot convert address to string");
+      return NULL;
+  }
+  
+  result = PyString_FromString(buf);
+  free(buf);
+  
+  return result;
+}
+
+struct sockaddr *fill_netmask(struct sockaddr *ref, struct sockaddr *sa)
+{
+  struct sockaddr *buf;
+
+  if (ref == NULL || sa == NULL || ref->sa_len == 0)
+    return NULL;
+
+  if (sa->sa_family == AF_UNSPEC) {
+    int len = MAX(sa->sa_len, ref->sa_len);
+    char *sap, *bufp;
+    int offs;
+
+    buf = malloc(len);
+    bufp = (unsigned char *)buf;
+    sap = (unsigned char *)sa;
+    offs = ( (char *)&(buf->sa_data) ) - ( (char *)buf );
+    bcopy(ref, buf, offs);
+    while( offs < len ) {
+      bufp[offs] = ( offs < sa->sa_len )? sap[offs] : 0;
+      offs ++;
+    }
+  } else {
+    buf = malloc(sa->sa_len);
+    bcopy(sa, buf, sa->sa_len);
+  }
+
+  return buf;
+}
+
+PyObject *findalldevs(int unpack)
 {
   pcap_if_t *if_head, *if_current;
   pcap_addr_t *addr_current;
@@ -338,6 +463,7 @@ PyObject *findalldevs(void)
   struct sockaddr_in *addr;
   int status, i;
   char ebuf[PCAP_ERRBUF_SIZE];
+  PyObject *(*formatter)(struct sockaddr *);
 
   status = pcap_findalldevs(&if_head, ebuf);
 
@@ -347,105 +473,48 @@ PyObject *findalldevs(void)
     return NULL;
   }
 
+  if (unpack)
+    formatter = object_from_sockaddr;
+  else
+    formatter = packed_sockaddr;
+
   out = PyList_New(0);
-  
   for (if_current = if_head; if_current; if_current = if_current->next) {
     addrlist = PyList_New(0);
 
-    for (addr_current = if_current->addresses; addr_current;\
+    for (addr_current = if_current->addresses; addr_current;
 	   addr_current = addr_current->next) {
-      
-      addrlist2=PyList_New(0);
+      struct sockaddr *filled_mask = fill_netmask(addr_current->addr, addr_current->netmask);
 
-      /* addr */
+      addrlist2 = Py_BuildValue("(O&O&O&O&)",
+				 formatter, addr_current->addr, 
+				 formatter, filled_mask,
+				 formatter, addr_current->broadaddr, 
+				 formatter, addr_current->dstaddr);
 
-      if (addr_current->addr) {
-        if (addr_current->addr->sa_family!=AF_INET) 
-          throw_exception(-1,"unknown address family");
+      if (filled_mask != NULL)
+	free(filled_mask);
 
-        addr=(struct sockaddr_in *)(addr_current->addr);
-        PyList_Append(addrlist2,\
-		      Py_BuildValue("s", inet_ntoa(addr->sin_addr)));
+      if (addrlist2 == NULL) {
+	Py_DECREF(addrlist);
+	Py_DECREF(out);
+	pcap_freealldevs(if_head);
+	return NULL;
       }
-      else 
-        PyList_Append(addrlist2, Py_BuildValue(""));
 
+      PyList_Append(addrlist, addrlist2);
 
-      /* netmask */
-
-      if (addr_current->netmask) {
-        if (addr_current->netmask->sa_family!=AF_INET)
-          throw_exception(-1,"unknown address family");
-     
-	addr=(struct sockaddr_in *)(addr_current->netmask);
-        PyList_Append(addrlist2,\
-		      Py_BuildValue("s", inet_ntoa(addr->sin_addr)));
-      }
-      else 
-        PyList_Append(addrlist2, Py_BuildValue(""));
-
-
-      /* broadaddr */
-
-      if (addr_current->broadaddr) {
-        if (addr_current->broadaddr->sa_family!=AF_INET)
-          throw_exception(-1,"unknown address family");
-
-        addr=(struct sockaddr_in *)(addr_current->broadaddr);
-        PyList_Append(addrlist2,\
-		      Py_BuildValue("s", inet_ntoa(addr->sin_addr)));
-      }
-      else 
-	PyList_Append(addrlist2, Py_BuildValue(""));
-   
-      
-      /* dstaddr */
-      
-      if (addr_current->dstaddr) {
-        if (addr_current->dstaddr->sa_family!=AF_INET)
-          throw_exception(-1,"unknown address family");
-      
-	addr=(struct sockaddr_in *)(addr_current->dstaddr);
-        PyList_Append(addrlist2,\
-		      Py_BuildValue("s", inet_ntoa(addr->sin_addr)));
-      }
-      else 
-	PyList_Append(addrlist2, Py_BuildValue(""));
-      
-      PyList_Append(addrlist, PyList_AsTuple(addrlist2));
-      
-      /*
-	at this stage, each member of addrlist2 has three references
-	each
-      */
-
-      for (i = 0; i < PyList_Size(addrlist2); i++) {
-	Py_DECREF(PyList_GetItem(addrlist2, i));
-      }
-      
       Py_DECREF(addrlist2);
     }
 
     tmp = Py_BuildValue("ssNi", 
 			 if_current->name,
 			 if_current->description,
-			 PyList_AsTuple(addrlist),
+			 addrlist,  /* refcount consumed by 'N' format */
 			 if_current->flags);
 
     PyList_Append(out, tmp);
     Py_DECREF(tmp);
-
-    /* 
-       each member of addrlist has three references
-    */
-
-    for (i = 0; i < PyList_Size(addrlist); i++)
-      {
-	tmp = PyList_GetItem(addrlist, i);
-	Py_DECREF(tmp);
-      }
-
-    Py_DECREF(addrlist);
   }
   
   pcap_freealldevs(if_head);
@@ -459,7 +528,6 @@ PyObject *findalldevs(void)
 PyObject *lookupnet(char *device)
 {
   bpf_u_int32 net=0, mask=0;
-  PyObject *outTuple;
   int status;
   char ebuf[PCAP_ERRBUF_SIZE];
 
@@ -470,12 +538,7 @@ PyObject *lookupnet(char *device)
     return NULL;
   }
 
-  outTuple=PyTuple_New(2);
-  PyTuple_SetItem(outTuple, 0, Py_BuildValue("i", net));
-  PyTuple_SetItem(outTuple, 1, Py_BuildValue("i", mask));
-
-
-  return outTuple;
+  return Py_BuildValue("ii", net, mask);
 }
 
 PyObject *aton(char *cp)
@@ -500,10 +563,6 @@ char *ntoa(int addr)
   in.s_addr=addr;
   return inet_ntoa(in);  
 }
-
-
-
-
 
 /*
  * This function matches the prototype of a libpcap callback function.

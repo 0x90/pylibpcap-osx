@@ -1,6 +1,6 @@
 
 /*
- * $Id: pypcap.h,v 1.7 2002/06/14 07:44:28 davidma Exp $
+ * $Id: pypcap.h,v 1.8 2004/04/24 05:36:20 wiml Exp $
  * Python libpcap
  * Copyright (C) 2001,2002 David Margrave
  * Based PY-libpcap (C) 1998, Aaron L. Rhodes
@@ -53,7 +53,7 @@ int pcapObject_fileno(pcapObject *self);
 
 
 /* functions that are not methods of pcapObject */
-PyObject *findalldevs(void);
+PyObject *findalldevs(int unpack);
 char *lookupdev(void);
 PyObject *lookupnet(char *device);
 void pcapObject_setfilter(pcapObject *self, char *str,
