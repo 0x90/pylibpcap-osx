@@ -159,7 +159,7 @@ int pcapObject_getnonblock(pcapObject *self)
 }
 
 void pcapObject_setfilter(pcapObject *self, char *str,
-                          int optimize, int netmask)
+                          int optimize, in_addr_t netmask)
 {
   struct bpf_program bpfprog;
   int status;
@@ -429,6 +429,45 @@ string_from_sockaddr_dl(struct sockaddr_dl *sdl)
 
 #endif /* AF_LINK */
 
+/* Ways to figure out how long a given sockaddr is. This varies
+   a lot from system to system. Fortunately, we have access to
+   Python's autoconf defined from pyconfig.h. */
+
+#if defined(HAVE_SOCKADDR_SA_LEN)
+#define SOCKADDR_LENGTH(sa) ((sa)->sa_len)
+#elif defined(SA_LEN)
+#define SOCKADDR_LENGTH(sa) (SA_LEN(sa))
+#else
+#define SOCKADDR_LENGTH(sa) sockaddr_length(sa)
+static int sockaddr_length(struct sockaddr *sa)
+{
+  switch(sa->sa_family) {
+  case AF_INET:
+    return sizeof(struct sockaddr_in);
+    break;
+#ifdef AF_INET6
+  case AF_INET6:
+    return sizeof(struct sockaddr_in6);
+    break;
+#endif
+#ifdef AF_LINK
+  case AF_LINK:
+    return sizeof(struct sockaddr_dl);
+    break;
+#endif
+  default:
+#ifdef HAVE_SOCKADDR_STORAGE
+    return sizeof(struct sockaddr_storage);
+#else
+    return sizeof(struct sockaddr);
+#endif
+    break;
+  }
+}
+#endif
+
+
+
 PyObject *packed_sockaddr(struct sockaddr *sa)
 {
   int length;
@@ -438,31 +477,7 @@ PyObject *packed_sockaddr(struct sockaddr *sa)
     return Py_None;
   }
   
-#if defined(HAVE_SOCKADDR_SA_LEN)
-  length = sa->sa_len;
-#elif defined(SA_LEN)
-  length = SA_LEN(sa);
-#else
-  switch(sa->sa_family) {
-  case AF_INET:
-    length = sizeof(struct sockaddr_in);
-    break;
-#ifdef AF_INET6
-  case AF_INET6:
-    length = sizeof(struct sockaddr_in6);
-    break;
-#endif
-#ifdef AF_LINK
-  case AF_LINK:
-    length = sizeof(struct sockaddr_dl);
-    break;
-#endif
-  default:
-    length = sizeof(struct sockaddr_storage);
-    break;
-  }
-#endif
-
+  length = SOCKADDR_LENGTH(sa);
   return PyString_FromStringAndSize( (const char *)sa, length );
 }
 
@@ -654,10 +669,9 @@ PyObject *aton(char *cp)
   }
   out=PyInt_FromLong(addr.s_addr);
   return out;
-  
 }
 
-char *ntoa(int addr)
+char *ntoa(in_addr_t addr)
 {
   struct in_addr in;
   in.s_addr=addr;
