@@ -1,7 +1,19 @@
 
+pylibpcap-0.3, released 4/23/02
+
+Thanks to the following people who supplied patches:
+
+- PC Drew for a fix to exception handling in callbacks.
+- Gustavo Carneiro for various fixes to pcap_next() and to handling of
+  packet capture lengths. 
+- John Nelson for distutil patch.
+
+
 To complile, you will need the Python include files, the libpcap include files
 and library, as well as the tool SWIG (see http://www.swig.org for more
 information).
+
+To build, simply run "./setup.py build".
 
 To run the sample program 'sniff.py', specify the interface name and 
 filter expression on the command line like so:

@@ -1,0 +1,10 @@
+Metadata-Version: 1.0
+Name: pylibpcap
+Version: 0.3
+Summary: pylibpcap is a python module for the libpcap packet capture library.
+Home-page: http://pylibpcap.sourceforge.net/
+Author: David Margrave
+Author-email: davidma@eskimo.com
+License: BSD
+Description: pylibpcap is a python module for the libpcap packet capture library.
+Platform: UNKNOWN
