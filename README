@@ -1,3 +1,10 @@
+pylibpcap-0.5, released 7/3/2005
+
+This release contains the patches that have been accumulating in CVS,
+and supports some features of newer libpcaps. It should build for
+libpcap bersions >= 0.8.3. It can be built for earlier versions by
+uncommenting lines in setup.py according to which features your version
+of libpcap supports.  [wiml]
 
 Apr 25, 2004 [wiml]:
 
