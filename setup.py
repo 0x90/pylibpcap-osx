@@ -1,6 +1,6 @@
 #! /usr/bin/env python2
 
-# $Id: setup.py,v 1.8 2004/04/27 06:41:41 wiml Exp $
+# $Id: setup.py,v 1.9 2005/07/03 23:14:31 wiml Exp $
 
 import distutils.command.build
 from distutils.command.build_ext import build_ext
@@ -9,6 +9,7 @@ from distutils.core import setup, Extension, Command
 
 import os
 
+config_defines = [ ]
 ### CONFIGURATION ###
 
 # uncomment this line and comment out the next one if you want to build
@@ -25,6 +26,22 @@ libpcap_dir = None
 
 include_dirs = [ ]
 
+# Depending on what version of libpcap you're using, you may need to
+# uncomment one of these lines.
+
+# Versions prior to 0.8 don't have pcap_lib_version().
+# config_defines.append('WITHOUT_PCAP_LIB_VERSION')
+
+# Versions prior to 0.8 don't have pcap_breakloop().
+# config_defines.append('WITHOUT_BREAKLOOP')
+
+# Versions prior to XXX don't have pcap_list_datalinks().
+# config_defines.append('WITHOUT_LIST_DATALINKS')
+
+# Some versions don't have pcap_version[].
+# config_defines.append('WITHOUT_VERSION_STRING')
+
+
 ### END OF CONFIGURATION ###
 # You shouldn't need to modify anything below this point unless you're
 # doing development
@@ -36,12 +53,14 @@ sourcefiles +=  ["pcap_interface.c","exception.c","error.c"]
 # yay!
 
 class pcapclean(clean):
+  other_derived = [ 'pcap.py', 'pcap.c', 'constants.c', 'MANIFEST' ] 
   def run (self):
-#    if os.access('pcap.c', os.F_OK):
-#      self.announce("removing pcap.c")
-#      os.unlink('pcap.c')
-#    else:
-#      self.warn("'pcap.c' does not exist -- can't clean it")
+    if self.all:
+      for derived in self.other_derived:
+        if os.access(derived, os.F_OK):
+          self.announce('removing %s' % derived)
+          if not self.dry_run:
+            os.unlink(derived)
     clean.run (self)
 #    self.run_command('make_clean')
 
@@ -126,19 +145,25 @@ class build_shadowed (distutils.command.build.build):
                   filter(lambda x: x[0] == 'build_py', sub_commands)
 
 
+defines = [ ('SWIG_COBJECT_TYPES', None) ] + \
+          map(lambda x: (x, None), config_defines)
+
 if libpcap_dir is None:
    pcap_extension = Extension("_pcapmodule",
                               sourcefiles,
                               include_dirs = include_dirs,
-                              libraries=["pcap",]
+                              define_macros = defines,
+                              libraries = [ "pcap" ]
                               )
 else:
-   libpath = os.path.join(libpcap_dir, 'libpcap.a')
    include_dirs.append( libpcap_dir )
+   # extension_objects=[ os.path.join(libpcap_dir, 'libpcap.a') ]
    pcap_extension = Extension("_pcapmodule",
                               sourcefiles,
                               include_dirs = include_dirs,
-                              extra_objects = [ libpath ]
+                              define_macros = defines,
+                              library_dirs = [ libpcap_dir ],
+                              libraries = [ "pcap" ]
                               )
 #
   
@@ -146,7 +171,7 @@ else:
 
 setup (# Distribution meta-data
         name = "pylibpcap",
-        version = "0.4+CVS",
+        version = "0.5",
         licence = "BSD",
         description = 'pylibpcap is a python module for the libpcap packet capture library.',
         long_description = 'pylibpcap is a python module for the libpcap packet capture library.',
