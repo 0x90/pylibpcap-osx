@@ -1,7 +1,8 @@
 #! /usr/bin/env python2
 
-# $Id: setup.py,v 1.9 2005/07/03 23:14:31 wiml Exp $
+# $Id: setup.py,v 1.10 2005/10/30 01:59:33 wiml Exp $
 
+import sys
 import distutils.command.build
 from distutils.command.build_ext import build_ext
 from distutils.command.clean import clean
@@ -75,7 +76,7 @@ class pcap_build_ext(build_ext):
               new_sources.append(source)
       return new_sources
     
-  def swig_sources(self, sources):
+  def swig_sources(self, sources, extension=None):
   
       """Walk the list of source files in 'sources', looking for SWIG
       interface (.i) files.  Run SWIG on all that are found, and
@@ -122,10 +123,10 @@ class pcap_build_ext(build_ext):
           self.spawn(swig_cmd + ["-o", target, source])
 
           self.announce('doc-ifying swig-generated source file %s' % target)
-          self.spawn(['./build-tools/docify.py', target])
+          self.spawn([sys.executable, './build-tools/docify.py', target])
 
           self.announce('doc-ifying swig-generated shadow class file %s' % 'pcap.py')
-          self.spawn(['./build-tools/docify-shadow.py', 'pcap.py'])
+          self.spawn([sys.executable, './build-tools/docify-shadow.py', 'pcap.py'])
   
       return new_sources
 
@@ -166,7 +167,7 @@ else:
                               libraries = [ "pcap" ]
                               )
 #
-  
+
 
 
 setup (# Distribution meta-data
