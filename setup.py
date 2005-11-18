@@ -1,6 +1,6 @@
 #! /usr/bin/env python2
 
-# $Id: setup.py,v 1.11 2005/11/18 06:48:19 wiml Exp $
+# $Id: setup.py,v 1.12 2005/11/18 07:01:21 wiml Exp $
 
 import sys
 import distutils.command.build
@@ -172,7 +172,7 @@ else:
 
 setup (# Distribution meta-data
         name = "pylibpcap",
-        version = "0.5",
+        version = "0.5.1",
         license = "BSD",
         description = 'pylibpcap is a python module for the libpcap packet capture library.',
         long_description = 'pylibpcap is a python module for the libpcap packet capture library.',
