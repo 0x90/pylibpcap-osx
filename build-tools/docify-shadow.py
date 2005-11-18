@@ -58,7 +58,8 @@ for line in pymeths:
 #print methods
 
 for i in xrange(0,len(data)):
-  outfile.write(data[i])
+  if not re.search('^[^ ]+_doc = _pcap.[^ ]+_doc$',data[i]):
+    outfile.write(data[i])
   match=re.search('^.*def __init__',data[i])
   if match:
     #print match.group(0)
@@ -73,9 +74,8 @@ i=i+1
 
 outfile.write('        import sys\n')
 outfile.write('        if sys.version[0]==\'2\':\n')
-
 for method, fname in methods.items():
-  outfile.write('          self.%s.__setattr__(\'__doc__\',%s.__doc__)\n' % (method, fname))
+  outfile.write('          self.%s.im_func.__doc__ = %s.__doc__\n' % (method, fname))
 
 
 # spit out rest of file verbatim
