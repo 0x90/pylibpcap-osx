@@ -1,3 +1,20 @@
+pylibpcap-0.6, 2007-02-14
+
+To install run:
+    python ./setup.py install
+
+For Ubuntu/Debian systems you will probably need to install
+the libpcap development package:
+   apt-get install libpcap-dev
+
+Had to manually add SWIG_PY_INT to mk-constants.py to support
+swig-1.3.31
+
+Normalized indentation to Python semi-standard 4 spaces.
+
+Changed #!/usr/bin/env lines from python2 to python, since
+no distros use python2 anymore.
+======================================================================
 pylibpcap-0.5, released 7/3/2005
 
 This release contains the patches that have been accumulating in CVS,

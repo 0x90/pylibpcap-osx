@@ -1,6 +1,6 @@
-#! /usr/bin/env python2
+#! /usr/bin/env python
 
-# $Id: setup.py,v 1.13 2005/12/10 02:51:52 wiml Exp $
+# $Id: setup.py,v 1.14 2007/02/14 07:55:17 noah Exp $
 
 import sys
 import distutils.command.build
@@ -47,125 +47,126 @@ include_dirs = [ ]
 # You shouldn't need to modify anything below this point unless you're
 # doing development
 
-sourcefiles +=  ["pcap_interface.c","exception.c","error.c"]
+sourcefiles += ["pcap_interface.c","exception.c","error.c"]
 
 
 # I modified build_ext to add -shadow to the swig line.
 # yay!
 
 class pcapclean(clean):
-  other_derived = [ 'pcap.py', 'pcap.c', 'constants.c', 'MANIFEST' ] 
-  def run (self):
-    if self.all:
-      for derived in self.other_derived:
-        if os.access(derived, os.F_OK):
-          self.announce('removing %s' % derived)
-          if not self.dry_run:
-            os.unlink(derived)
-    clean.run (self)
-#    self.run_command('make_clean')
+    other_derived = [ 'pcap.py', 'pcap.c', 'constants.c', 'MANIFEST' ] 
+    def run (self):
+        #if self.all:
+        for derived in self.other_derived:
+            if os.access(derived, os.F_OK):
+                print derived
+                self.announce('removing: %s' % derived)
+                if not self.dry_run:
+                    os.unlink(derived)
+        clean.run (self)
+#        self.run_command('make_clean')
 
 class pcap_build_ext(build_ext):
 
-  def before_swig_sources(self, sources):
-      new_sources = [ ]
-      for source in sources:
-          if source == 'mk-constants.py':
-              self.make_file( (source,), 'constants.c', execfile, (source,) )
-          else:
-              new_sources.append(source)
-      return new_sources
+    def before_swig_sources(self, sources):
+        new_sources = [ ]
+        for source in sources:
+            if source == 'mk-constants.py':
+                self.make_file( (source,), 'constants.c', execfile, (source,) )
+            else:
+                new_sources.append(source)
+        return new_sources
+      
+    def swig_sources(self, sources, extension=None):
     
-  def swig_sources(self, sources, extension=None):
-  
-      """Walk the list of source files in 'sources', looking for SWIG
-      interface (.i) files.  Run SWIG on all that are found, and
-      return a modified 'sources' list with SWIG source files replaced
-      by the generated C (or C++) files.
-      """
+        """Walk the list of source files in 'sources', looking for SWIG
+        interface (.i) files.  Run SWIG on all that are found, and
+        return a modified 'sources' list with SWIG source files replaced
+        by the generated C (or C++) files.
+        """
 
-      sources = self.before_swig_sources(sources)
-  
-      new_sources = []
-      swig_sources = []
-      swig_targets = {}
-  
-      # XXX this drops generated C/C++ files into the source tree, which
-      # is fine for developers who want to distribute the generated
-      # source -- but there should be an option to put SWIG output in
-      # the temp dir.
-  
-      if self.swig_cpp:
-          target_ext = '.cpp'
-      else:
-          target_ext = '.c'
-  
-      for source in sources:
-          (base, ext) = os.path.splitext(source)
-          if ext == ".i":             # SWIG interface file
-              new_sources.append(base + target_ext)
-              swig_sources.append(source)
-              swig_targets[source] = new_sources[-1]
-          else:
-              new_sources.append(source)
-  
-      if not swig_sources:
-          return new_sources
-  
-      swig = self.find_swig()
-      swig_cmd = [swig, "-python", "-shadow", "-ISWIG"]
-      if self.swig_cpp:
-          swig_cmd.append("-c++")
-  
-      for source in swig_sources:
-          target = swig_targets[source]
-          self.announce("swigging %s to %s" % (source, target))
-          self.spawn(swig_cmd + ["-o", target, source])
+        sources = self.before_swig_sources(sources)
+    
+        new_sources = []
+        swig_sources = []
+        swig_targets = {}
+    
+        # XXX this drops generated C/C++ files into the source tree, which
+        # is fine for developers who want to distribute the generated
+        # source -- but there should be an option to put SWIG output in
+        # the temp dir.
+    
+        if self.swig_cpp:
+            target_ext = '.cpp'
+        else:
+            target_ext = '.c'
+    
+        for source in sources:
+            (base, ext) = os.path.splitext(source)
+            if ext == ".i":             # SWIG interface file
+                new_sources.append(base + target_ext)
+                swig_sources.append(source)
+                swig_targets[source] = new_sources[-1]
+            else:
+                new_sources.append(source)
+    
+        if not swig_sources:
+            return new_sources
+    
+        swig = self.find_swig()
+        swig_cmd = [swig, "-Wall", "-python", "-shadow", "-ISWIG"]
+        if self.swig_cpp:
+            swig_cmd.append("-c++")
+    
+        for source in swig_sources:
+            target = swig_targets[source]
+            self.announce("swigging %s to %s" % (source, target))
+            self.spawn(swig_cmd + ["-o", target, source])
 
-          self.announce('doc-ifying swig-generated source file %s' % target)
-          self.spawn([sys.executable, './build-tools/docify.py', target])
+            self.announce('doc-ifying swig-generated source file %s' % target)
+            self.spawn([sys.executable, './build-tools/docify.py', target])
 
-          self.announce('doc-ifying swig-generated shadow class file %s' % 'pcap.py')
-          self.spawn([sys.executable, './build-tools/docify-shadow.py', 'pcap.py'])
-  
-      return new_sources
+            self.announce('doc-ifying swig-generated shadow class file %s' % 'pcap.py')
+            self.spawn([sys.executable, './build-tools/docify-shadow.py', 'pcap.py'])
+    
+        return new_sources
 
-  # swig_sources ()
+    # swig_sources ()
 
-  def find_swig(self):
-      if os.environ.has_key('SWIG'):
-          return os.environ['SWIG']
-      return build_ext.find_swig(self)
+    def find_swig(self):
+        if os.environ.has_key('SWIG'):
+            return os.environ['SWIG']
+        return build_ext.find_swig(self)
 #
 
 class build_shadowed (distutils.command.build.build):
-  # this moves the 'build_py' subcommand to the end, so it happens
-  # after the pcap.py module has been created by the build_ext command
-  sub_commands = distutils.command.build.build.sub_commands
-  sub_commands  = filter(lambda x: x[0] != 'build_py', sub_commands) + \
-                  filter(lambda x: x[0] == 'build_py', sub_commands)
+    # this moves the 'build_py' subcommand to the end, so it happens
+    # after the pcap.py module has been created by the build_ext command
+    sub_commands = distutils.command.build.build.sub_commands
+    sub_commands  = filter(lambda x: x[0] != 'build_py', sub_commands) + \
+                    filter(lambda x: x[0] == 'build_py', sub_commands)
 
 
 defines = [ ('SWIG_COBJECT_TYPES', None) ] + \
           map(lambda x: (x, None), config_defines)
 
 if libpcap_dir is None:
-   pcap_extension = Extension("_pcapmodule",
-                              sourcefiles,
-                              include_dirs = include_dirs,
-                              define_macros = defines,
-                              libraries = [ "pcap" ]
-                              )
+    pcap_extension = Extension("_pcapmodule",
+                                sourcefiles,
+                                include_dirs = include_dirs,
+                                define_macros = defines,
+                                libraries = [ "pcap" ]
+                                )
 else:
-   include_dirs.append( libpcap_dir )
-   # extension_objects=[ os.path.join(libpcap_dir, 'libpcap.a') ]
-   pcap_extension = Extension("_pcapmodule",
-                              sourcefiles,
-                              include_dirs = include_dirs,
-                              define_macros = defines,
-                              library_dirs = [ libpcap_dir ],
-                              libraries = [ "pcap" ]
-                              )
+    include_dirs.append( libpcap_dir )
+    # extension_objects=[ os.path.join(libpcap_dir, 'libpcap.a') ]
+    pcap_extension = Extension("_pcapmodule",
+                                sourcefiles,
+                                include_dirs = include_dirs,
+                                define_macros = defines,
+                                library_dirs = [ libpcap_dir ],
+                                libraries = [ "pcap" ]
+                                )
 #
 
 
@@ -198,3 +199,4 @@ setup (# Distribution meta-data
                         'Topic :: System :: Networking :: Monitoring' ],
       )
 
+# vim:set ts=4 sw=4 et:
