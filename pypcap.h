@@ -1,12 +1,14 @@
 
 /*
- * $Id: pypcap.h,v 1.12 2004/12/03 21:10:39 wiml Exp $
+ * $Id: pypcap.h,v 1.13 2007/02/14 07:03:28 wiml Exp $
  * Python libpcap
  * Copyright (C) 2001,2002 David Margrave
+ * Copyright (C) 2004 William Lewis
  * Based PY-libpcap (C) 1998, Aaron L. Rhodes
  * 
  * This program is free software; you can redistribute it and/or
- * modify it under the terms of the BSD Licence
+ * modify it under the terms of the BSD Licence. See the file COPYING
+ * for details.
  * 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
