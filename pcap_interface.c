@@ -514,9 +514,11 @@ PyObject *object_from_sockaddr(struct sockaddr *sa)
     break;
 #endif
   default:
-    fprintf(stderr, "at line %d\n", __LINE__);
-    throw_exception(-1, "unsupported address family");
+    /*
+    PyErr_Format(PyExc_Exception, "unsupported address family %d", sa->sa_family);
     return NULL;
+    */
+    return PyString_FromFormat("<AF %d>", sa->sa_family);
   case AF_UNSPEC:
     Py_INCREF(Py_None);
     return Py_None;
