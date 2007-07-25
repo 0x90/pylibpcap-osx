@@ -1,55 +1,24 @@
-pylibpcap-0.6, 2007-02-14
 
-To install run:
-    python ./setup.py install
+To compile, you will need the Python include files, libpcap 0.7.1 (or
+later) includes and library, as well as SWIG 1.3.12 if you wish to
+modify the interface (see http://www.swig.org for more information).
+If you do wish to modify the interface, you'll need to change 'pcap.c'
+to 'pcap.i' in the setup.py script.  Most users won't need to touch
+this however.
 
-For Ubuntu/Debian systems you will probably need to install
-the libpcap development package:
-   apt-get install libpcap-dev
+On Ubuntu/Debian systems you can install the libpcap development
+package in order to get the headers:
+    apt-get install libpcap-dev
 
-Had to manually add SWIG_PY_INT to mk-constants.py to support
-swig-1.3.31
-
-Normalized indentation to Python semi-standard 4 spaces.
-
-Changed #!/usr/bin/env lines from python2 to python, since
-no distros use python2 anymore.
-======================================================================
-pylibpcap-0.5, released 7/3/2005
-
-This release contains the patches that have been accumulating in CVS,
-and supports some features of newer libpcaps. It should build for
-libpcap bersions >= 0.8.3. It can be built for earlier versions by
-uncommenting lines in setup.py according to which features your version
-of libpcap supports.  [wiml]
-
-Apr 25, 2004 [wiml]:
-
-There is a bug in libpcap and/or OpenBSD3.4 which results in a SEGV
-if you call findalldevs() and you have a gif tunnel configured.
-(See libpcap bug #941924 for details:
-  http://sourceforge.net/tracker/index.php?
-      func=detail&aid=941924&group_id=53067&atid=469577 )
-
-pylibpcap-0.4, released 6/14/02
-
-Thanks to the following people who supplied patches:
-
-- PC Drew for a fix to exception handling in callbacks.
-- Gustavo Carneiro for various fixes to pcap_next() and to handling of
-  packet capture lengths. 
-- Jon Nelson for distutil patch.
-- T. Meyarivan for finding and fixing memory leaks
-
-
-To compile, you will need the Python include files, libpcap 0.7.1 includes
-and library, as well as SWIG 1.3.12 if you wish to modify the interface 
-(see http://www.swig.org for more information).  If you do wish to 
-modify the interface, you'll need to change 'pcap.c' to 'pcap.i' in the
-ext_modules section of the setup.py script.  Most users won't need to 
-touch this however.
+Alternately, you can download pcap from www.tcpdump.org if it is not
+already installed on your system (or if your vendor's version is old).
 
 To build, simply run "python ./setup.py build", or "python2 ./setup.py build"
+
+You may need to edit setup.py if you are not using a recent libpcap.
+See the comments in that file for more information.
+
+To install, run "python ./setup.py install"
 
 To run the sample program 'sniff.py', specify the interface name and 
 filter expression on the command line like so:
@@ -61,4 +30,8 @@ the pcap man page further information
 
 David Margrave
 davidma@eskimo.com
+
+Wim Lewis
+wiml@hhhh.org
+
 
