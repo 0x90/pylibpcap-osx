@@ -1,6 +1,6 @@
 
 /*
- * $Id: pcap.i,v 1.16 2007/02/14 07:03:28 wiml Exp $
+ * $Id: pcap.i,v 1.17 2007/07/25 07:07:29 wiml Exp $
  * Python libpcap
  * Copyright (C) 2001,2002, David Margrave
  * Copyright (C) 2004, William Lewis
@@ -48,7 +48,14 @@ extern char pcap_version[];
   /* the DLT dictionary holds any DLT_* constants available on this platform */
   {
     PyObject *dlt = PyDict_New();
-    SWIG_Python_InstallConstants(dlt, pcapmodule_DLT);
+    int constantIndex;
+    for(constantIndex = 0; pcapmodule_DLT[constantIndex].name; constantIndex ++) {
+        PyObject *v = PyInt_FromLong(pcapmodule_DLT[constantIndex].value);
+        PyDict_SetItemString(dlt,
+                             pcapmodule_DLT[constantIndex].name,
+                             v);
+        Py_DECREF(v);
+    }
     PyDict_SetItemString(d, "DLT", dlt);
     Py_DECREF(dlt);
   }
