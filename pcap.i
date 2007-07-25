@@ -1,9 +1,9 @@
 
 /*
- * $Id: pcap.i,v 1.17 2007/07/25 07:07:29 wiml Exp $
+ * $Id: pcap.i,v 1.18 2007/07/25 07:42:54 wiml Exp $
  * Python libpcap
  * Copyright (C) 2001,2002, David Margrave
- * Copyright (C) 2004, William Lewis
+ * Copyright (C) 2004,2007 William Lewis
  * Based PY-libpcap (C) 1998, Aaron L. Rhodes
  *
  * This program is free software; you can redistribute it and/or
@@ -56,8 +56,7 @@ extern char pcap_version[];
                              v);
         Py_DECREF(v);
     }
-    PyDict_SetItemString(d, "DLT", dlt);
-    Py_DECREF(dlt);
+    PyModule_AddObject(m, "DLT", dlt);  /* consumes a reference to dlt */
   }
 
 #if defined(WITHOUT_PCAP_LIB_VERSION)
@@ -78,17 +77,17 @@ for dltname, dltvalue in _pcap.DLT.items():
 /* typemaps */
 
 /* let functions return raw python objects */
-%typemap(python, out) PyObject * {
+%typemap(out) PyObject * {
   $result = $1;
 }
 
 /* let functions take raw python objects */
-%typemap(python, in) PyObject * {
+%typemap(in) PyObject * {
   $1 = $input;
 }
 
 /* functions taking IPv4 addresses as unsigned 32-bit integers */
-%typemap(python, in) in_addr_t {
+%typemap(in) in_addr_t {
   if (PyInt_CheckExact($input)) {
     $1 = (unsigned long)PyInt_AS_LONG($input);
   } else if (!PyNumber_Check($input)) {
