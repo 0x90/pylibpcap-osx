@@ -1,3 +1,12 @@
+2008-01-25  Wim Lewis  <wiml@hhhh.org>
+
+  pylibpcap-0.6.2, 25 January 2008
+
+  Some files were missing from the tarball depending on how it was
+  packaged; added them to MANIFEST.in to make sure they get included.
+  Also updated mk-constants with the latest DLT_* entries from
+  tcpdump.org.
+
 2007-07-25  Wim Lewis  <wiml@hhhh.org>
 
   pylibpcap-0.6.1, 25 July 2007
