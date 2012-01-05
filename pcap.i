@@ -1,6 +1,6 @@
 
 /*
- * $Id: pcap.i,v 1.18 2007/07/25 07:42:54 wiml Exp $
+ * $Id: pcap.i,v 1.19 2012/01/05 23:43:07 wiml Exp $
  * Python libpcap
  * Copyright (C) 2001,2002, David Margrave
  * Copyright (C) 2004,2007 William Lewis
@@ -71,6 +71,7 @@ extern char pcap_version[];
 %pythoncode %{
 for dltname, dltvalue in _pcap.DLT.items():
   globals()[dltname] = dltvalue
+del dltname, dltvalue
 
 %}
 
