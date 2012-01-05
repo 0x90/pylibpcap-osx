@@ -2,7 +2,7 @@
 /*
 Python libpcap
 Copyright (C) 2001, David Margrave
-Copyright (C) 2003-2004, William Lewis
+Copyright (C) 2003-2004,2012 William Lewis
 Based on PY-libpcap (C) 1998, Aaron L. Rhodes
 
 This program is free software; you can redistribute it and/or
@@ -54,18 +54,29 @@ void PythonCallBack(u_char *user_data,
 struct pythonCallBackContext {
   PyObject *func;
   pcap_t *pcap;
+  PyThreadState *threadstate;
 };
 
 static int check_ctx(pcapObject *self)
 {
   if (!self->pcap) {
-    throw_exception(-1,
+    PyErr_SetString(PyExc_RuntimeError,
                     "pcapObject must be initialized via open_live(), "
                     "open_offline(), or open_dead() methods");
     return 1;
   }
   return 0;
 }
+
+static int check_noctx(pcapObject *self)
+{
+  if (self->pcap) {
+    PyErr_SetString(PyExc_RuntimeError, "pcapObject was already opened");
+    return 1;
+  }
+  return 0;
+}
+
 
 /*
 pcapObject *new_pcapObject(char *device, int snaplen, int promisc, int to_ms)
@@ -100,37 +111,68 @@ void pcapObject_open_live(pcapObject *self, char *device, int snaplen,
                           int promisc, int to_ms)
 {
   char ebuf[PCAP_ERRBUF_SIZE];
+  pcap_t *opened;
 
-  self->pcap = pcap_open_live(device, snaplen, promisc, to_ms, ebuf);
+  if (check_noctx(self))
+    return;
 
-  if (!self->pcap)
+  Py_BEGIN_ALLOW_THREADS
+  opened = pcap_open_live(device, snaplen, promisc, to_ms, ebuf);
+  Py_END_ALLOW_THREADS
+
+  if (!opened)
     throw_exception(-1, ebuf);
+  else
+    self->pcap = opened;
 }
 
 void pcapObject_open_dead(pcapObject *self, int linktype, int snaplen)
 {
-  self->pcap = pcap_open_dead(linktype, snaplen);
+  pcap_t *opened;
 
-  if (!self->pcap)
+  if (check_noctx(self))
+    return;
+
+  Py_BEGIN_ALLOW_THREADS
+  opened = pcap_open_dead(linktype, snaplen);
+  Py_END_ALLOW_THREADS
+
+  if (!opened)
     throw_exception(errno, "pcap_open_dead failed");
+  else
+    self->pcap = opened;
 }
 
 void pcapObject_open_offline(pcapObject *self, char *fname)
 {
   char ebuf[PCAP_ERRBUF_SIZE];
+  pcap_t *opened;
 
-  self->pcap = pcap_open_offline(fname, ebuf);
+  if (check_noctx(self))
+    return;
 
-  if (!self->pcap)
+  Py_BEGIN_ALLOW_THREADS
+  opened = pcap_open_offline(fname, ebuf);
+  Py_END_ALLOW_THREADS
+
+  if (!opened)
     throw_exception(-1, ebuf);
+  else
+    self->pcap = opened;
 }
 
 
 void pcapObject_dump_open(pcapObject *self, char *fname)
 {
+  if (check_ctx(self))
+    return;
+
+  Py_BEGIN_ALLOW_THREADS
   if (self->pcap_dumper)
     pcap_dump_close(self->pcap_dumper);
   self->pcap_dumper = pcap_dump_open(self->pcap, fname);
+  Py_END_ALLOW_THREADS
+
   if (!self->pcap_dumper)
     throw_pcap_exception(self->pcap, "pcap_dump_open");
 }
@@ -164,17 +206,22 @@ void pcapObject_setfilter(pcapObject *self, char *str,
 {
   struct bpf_program bpfprog;
   int status;
+  PyThreadState *saved_state;
 
   if (check_ctx(self))
     return;
 
+  saved_state = PyEval_SaveThread(); /* Py_BEGIN_ALLOW_THREADS */
+
   status = pcap_compile(self->pcap, &bpfprog, str, optimize, (bpf_u_int32)netmask);
   if (status) {
+    PyEval_RestoreThread(saved_state);
     throw_pcap_exception(self->pcap, "pcap_compile");
     return;
   }
 
   status = pcap_setfilter(self->pcap, &bpfprog);
+  PyEval_RestoreThread(saved_state);
   if (status) 
     throw_pcap_exception(self->pcap, "pcap_setfilter");
 }
@@ -211,11 +258,20 @@ int pcapObject_invoke(pcapObject *self, int cnt, PyObject *PyObj,
     callback = pcap_dump;
     callback_arg = self->pcap_dumper;
   } else {
-    throw_exception(-1, "argument must be a callable object, or None to invoke dumper");
+      PyErr_SetString(PyExc_TypeError,
+                      "argument must be a callable object, or None to invoke dumper");
     return -1;
   }
 
+  /* Release the GIL and store the current thread state. We store it in the
+     callbackContextBuf even if we're not otherwise using that buf (the
+     pcap_dump callback doesn't touch Python so it doesn't need to reacquire
+     the GIL). */
+  callbackContextBuf.threadstate = PyEval_SaveThread();
+
   status=(*f)(self->pcap, cnt, callback, callback_arg);
+
+  PyEval_RestoreThread(callbackContextBuf.threadstate);
 
   /* the pcap(3) man page describes the specal return values -1 and -2 */
   if (status == -2 && PyErr_Occurred()) {
@@ -226,6 +282,8 @@ int pcapObject_invoke(pcapObject *self, int cnt, PyObject *PyObj,
       throw_pcap_exception(self->pcap, NULL);
     return status;
   }
+  if (PyErr_CheckSignals())
+    return -1;
   return status;
 }
 
@@ -238,7 +296,9 @@ PyObject *pcapObject_next(pcapObject *self)
   if (check_ctx(self))
     return NULL;
 
+  Py_BEGIN_ALLOW_THREADS
   buf = pcap_next(self->pcap, &header);
+  Py_END_ALLOW_THREADS
 
   if (buf == NULL) {
     Py_INCREF(Py_None);
@@ -269,8 +329,10 @@ PyObject *pcapObject_datalinks(pcapObject *self)
   if (check_ctx(self))
     return NULL;
 
+  Py_BEGIN_ALLOW_THREADS
   links = NULL;
   linkcount = pcap_list_datalinks(self->pcap, &links);
+  Py_END_ALLOW_THREADS
   if (linkcount < 0) {
     throw_pcap_exception(self->pcap, "list_datalinks");
     return NULL;
@@ -339,12 +401,16 @@ PyObject *pcapObject_stats(pcapObject *self)
   if (check_ctx(self))
     return NULL;
 
+  Py_BEGIN_ALLOW_THREADS
+
   pstat.ps_recv = 0;
   pstat.ps_drop = 0;
   pstat.ps_ifdrop = 0;
 
   /* pcap_stats always returns 0, no need to check */
   pcap_stats(self->pcap, &pstat);
+
+  Py_END_ALLOW_THREADS
 
   outTuple = Py_BuildValue("(iii)", 
 			   pstat.ps_recv, pstat.ps_drop, pstat.ps_ifdrop);
@@ -383,7 +449,10 @@ char *lookupdev(void)
   char *dev;
   char ebuf[PCAP_ERRBUF_SIZE];
 
+  Py_BEGIN_ALLOW_THREADS
   dev = pcap_lookupdev(ebuf);
+  Py_END_ALLOW_THREADS
+  
   if (dev)
     return dev;
   else {
@@ -582,7 +651,9 @@ PyObject *findalldevs(int unpack)
   char ebuf[PCAP_ERRBUF_SIZE];
   PyObject *(*formatter)(struct sockaddr *);
 
+  Py_BEGIN_ALLOW_THREADS
   status = pcap_findalldevs(&if_head, ebuf);
+  Py_END_ALLOW_THREADS
 
   if (status) {
     throw_exception(errno, ebuf);
@@ -650,7 +721,9 @@ PyObject *lookupnet(char *device)
   int status;
   char ebuf[PCAP_ERRBUF_SIZE];
 
+  Py_BEGIN_ALLOW_THREADS
   status = pcap_lookupnet(device, &net, &mask, ebuf);
+  Py_END_ALLOW_THREADS
 
   if (status) {
     throw_exception(errno, ebuf);
@@ -697,12 +770,16 @@ void PythonCallBack(u_char *user_data,
 
   context = (struct pythonCallBackContext *)user_data;
 
+  /* Re-acquire the GIL and restore the Python thread state */
+  PyEval_RestoreThread(context->threadstate);
+
   arglist = Py_BuildValue("is#f", header->len, packetdata, header->caplen,
 			  header->ts.tv_sec*1.0+header->ts.tv_usec*1.0e-6);
   result = PyObject_CallObject(context->func, arglist);
   Py_DECREF(arglist);
   if (result == NULL) {
     /* An exception was raised by the Python callback */
+    context->threadstate = PyEval_SaveThread();
 #ifndef WITHOUT_BREAKLOOP
     pcap_breakloop(context->pcap);
 #else
@@ -712,6 +789,7 @@ void PythonCallBack(u_char *user_data,
   } else {
     /* ignore result (probably None) */
     Py_DECREF(result);
+    context->threadstate = PyEval_SaveThread();
     return;
   }
 }
