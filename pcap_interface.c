@@ -623,8 +623,8 @@ struct sockaddr *fill_netmask(struct sockaddr *ref, struct sockaddr *sa, void **
     int offs;
 
     buf = *free_this = malloc(len);
-    bufp = (unsigned char *)buf;
-    sap = (unsigned char *)sa;
+    bufp = (char *)buf;
+    sap = (char *)sa;
     offs = ( (char *)&(buf->sa_data) ) - ( (char *)buf );
     bcopy(ref, buf, offs);
     while( offs < len ) {
