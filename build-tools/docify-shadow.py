@@ -98,7 +98,7 @@ for i in xrange(0,len(data)):
 
 # put doc assignments inside of the __init__
 outfile.write('        import sys\n')
-outfile.write('        if int(sys.version[0])>=\'2\':\n')
+outfile.write('        if int(sys.version[0])>=2:\n')
 for method, fname in methods.items():
     outfile.write('            self.%s.im_func.__doc__ = %s.__doc__\n' % (method, fname))
 
