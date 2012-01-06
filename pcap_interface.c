@@ -79,7 +79,7 @@ static int check_noctx(pcapObject *self)
 
 
 /*
-pcapObject *new_pcapObject(char *device, int snaplen, int promisc, int to_ms)
+pcapObject *new_pcapObject(const char *device, int snaplen, int promisc, int to_ms)
 */
 pcapObject *new_pcapObject(void)
 {
@@ -107,7 +107,7 @@ void delete_pcapObject(pcapObject *self)
   free(self);
 }
 
-void pcapObject_open_live(pcapObject *self, char *device, int snaplen,
+void pcapObject_open_live(pcapObject *self, const char *device, int snaplen,
                           int promisc, int to_ms)
 {
   char ebuf[PCAP_ERRBUF_SIZE];
@@ -143,7 +143,7 @@ void pcapObject_open_dead(pcapObject *self, int linktype, int snaplen)
     self->pcap = opened;
 }
 
-void pcapObject_open_offline(pcapObject *self, char *fname)
+void pcapObject_open_offline(pcapObject *self, const char *filename)
 {
   char ebuf[PCAP_ERRBUF_SIZE];
   pcap_t *opened;
@@ -152,7 +152,7 @@ void pcapObject_open_offline(pcapObject *self, char *fname)
     return;
 
   Py_BEGIN_ALLOW_THREADS
-  opened = pcap_open_offline(fname, ebuf);
+  opened = pcap_open_offline(filename, ebuf);
   Py_END_ALLOW_THREADS
 
   if (!opened)
@@ -162,7 +162,7 @@ void pcapObject_open_offline(pcapObject *self, char *fname)
 }
 
 
-void pcapObject_dump_open(pcapObject *self, char *fname)
+void pcapObject_dump_open(pcapObject *self, const char *filename)
 {
   if (check_ctx(self))
     return;
@@ -170,7 +170,7 @@ void pcapObject_dump_open(pcapObject *self, char *fname)
   Py_BEGIN_ALLOW_THREADS
   if (self->pcap_dumper)
     pcap_dump_close(self->pcap_dumper);
-  self->pcap_dumper = pcap_dump_open(self->pcap, fname);
+  self->pcap_dumper = pcap_dump_open(self->pcap, filename);
   Py_END_ALLOW_THREADS
 
   if (!self->pcap_dumper)
@@ -201,7 +201,7 @@ int pcapObject_getnonblock(pcapObject *self)
   return status;
 }
 
-void pcapObject_setfilter(pcapObject *self, char *str,
+void pcapObject_setfilter(pcapObject *self, const char *str,
                           int optimize, in_addr_t netmask)
 {
   struct bpf_program bpfprog;
@@ -715,7 +715,7 @@ PyObject *findalldevs(int unpack)
 /* warning:  the libpcap that ships with RH 6.2 seems to have a buggy
    pcap_lookupnet */
 
-PyObject *lookupnet(char *device)
+PyObject *lookupnet(const char *device)
 {
   bpf_u_int32 net=0, mask=0;
   int status;
@@ -733,7 +733,7 @@ PyObject *lookupnet(char *device)
   return Py_BuildValue("ii", net, mask);
 }
 
-PyObject *aton(char *cp)
+PyObject *aton(const char *cp)
 {
   PyObject *out;
   struct in_addr addr;

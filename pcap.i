@@ -1,6 +1,6 @@
 
 /*
- * $Id: pcap.i,v 1.19 2012/01/05 23:43:07 wiml Exp $
+ * $Id: pcap.i,v 1.20 2012/01/06 08:14:17 wiml Exp $
  * Python libpcap
  * Copyright (C) 2001,2002, David Margrave
  * Copyright (C) 2004,2007 William Lewis
@@ -116,19 +116,19 @@ typedef struct {
     DOC(new_pcapObject,"create a pcapObject instance")
     ~pcapObject(void);
     DOC(delete_pcapObject,"destroy a pcapObject instance")
-    void open_live(char *device, int snaplen, int promisc, int to_ms);
+    void open_live(const char *device, int snaplen, int promisc, int to_ms);
     DOC(pcapObject_open_live,pcapObject_open_live_doc)
     void open_dead(int linktype, int snaplen);
     DOC(pcapObject_open_dead,pcapObject_open_dead_doc)
-    void open_offline(char *filename);
+    void open_offline(const char *filename);
     DOC(pcapObject_open_offline,pcapObject_open_offline_doc)
-    void dump_open(char *fname);
+    void dump_open(const char *filename);
     DOC(pcapObject_dump_open,pcapObject_dump_open_doc)
     void setnonblock(int nonblock);
     DOC(pcapObject_setnonblock,pcapObject_setnonblock_doc)
     int getnonblock(void);
     DOC(pcapObject_getnonblock,pcapObject_getnonblock_doc)
-    void setfilter(char *str, int optimize, in_addr_t netmask);
+    void setfilter(const char *str, int optimize, in_addr_t netmask);
     DOC(pcapObject_setfilter,pcapObject_setfilter_doc)
     void loop(int cnt, PyObject *PyObj);
     DOC(pcapObject_loop,pcapObject_loop_doc)
@@ -167,7 +167,7 @@ PyObject *lookupnet(char *device);
 DOC(lookupnet,lookupnet_doc)
 
 /* useful non-pcap functions */
-PyObject *aton(char *cp);
+PyObject *aton(const char *cp);
 DOC(aton,"aton(addr)\n\nconvert dotted decimal IP string to network byte order int")
 char *ntoa(in_addr_t addr);
 DOC(ntoa,"ntoa(addr)\n\nconvert network byte order int to dotted decimal IP string")

@@ -1,6 +1,6 @@
 
 /*
- * $Id: pypcap.h,v 1.13 2007/02/14 07:03:28 wiml Exp $
+ * $Id: pypcap.h,v 1.14 2012/01/06 08:14:17 wiml Exp $
  * Python libpcap
  * Copyright (C) 2001,2002 David Margrave
  * Copyright (C) 2004 William Lewis
@@ -32,14 +32,14 @@ pcapObject *new_pcapObject(char *device, int snaplen, int promisc, int to_ms);
 */
 pcapObject *new_pcapObject(void);
 void delete_pcapObject(pcapObject *self);
-void pcapObject_open_live(pcapObject *self, char *device, int snaplen,
+void pcapObject_open_live(pcapObject *self, const char *device, int snaplen,
                           int promisc, int to_ms);
 void pcapObject_open_dead(pcapObject *self, int linktype, int snaplen);
-void pcapObject_open_offline(pcapObject *self, char *fname);
-void pcapObject_dump_open(pcapObject *self, char *fname);
+void pcapObject_open_offline(pcapObject *self, const char *filename);
+void pcapObject_dump_open(pcapObject *self, const char *filename);
 void pcapObject_setnonblock(pcapObject *self, int nonblock);
 int pcapObject_getnonblock(pcapObject *self);
-void pcapObject_setfilter(pcapObject *self, char *str,
+void pcapObject_setfilter(pcapObject *self, const char *str,
                           int optimize, in_addr_t netmask);
 PyObject *pcapObject_next(pcapObject *self);
 int pcapObject_dispatch(pcapObject *self, int cnt, PyObject *PyObj);
@@ -59,10 +59,10 @@ int pcapObject_fileno(pcapObject *self);
 /* functions that are not methods of pcapObject */
 PyObject *findalldevs(int unpack);
 char *lookupdev(void);
-PyObject *lookupnet(char *device);
+PyObject *lookupnet(const char *device);
 
 /* useful non-pcap functions */
-PyObject *aton(char *cp);
+PyObject *aton(const char *cp);
 char *ntoa(in_addr_t addr);
 
 /* error support fuctions */
