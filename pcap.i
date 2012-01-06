@@ -1,6 +1,6 @@
 
 /*
- * $Id: pcap.i,v 1.20 2012/01/06 08:14:17 wiml Exp $
+ * $Id: pcap.i,v 1.21 2012/01/06 08:45:24 wiml Exp $
  * Python libpcap
  * Copyright (C) 2001,2002, David Margrave
  * Copyright (C) 2004,2007 William Lewis
@@ -112,9 +112,9 @@ del dltname, dltvalue
 
 typedef struct {
   %extend {
-    pcapObject(void);
+    pcapObject();
     DOC(new_pcapObject,"create a pcapObject instance")
-    ~pcapObject(void);
+    ~pcapObject();
     DOC(delete_pcapObject,"destroy a pcapObject instance")
     void open_live(const char *device, int snaplen, int promisc, int to_ms);
     DOC(pcapObject_open_live,pcapObject_open_live_doc)
