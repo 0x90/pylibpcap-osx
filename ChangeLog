@@ -1,3 +1,14 @@
+2012-01-05  Wim Lewis  <wiml@hhhh.org>
+
+  pylibpcap-0.6.3, 5 January 2012
+
+  * pcap_interface.c: Release the GIL when calling into libpcap,
+    to allow other threads to run. (SF bug #2080784)
+  * pcap_interface.c: Minor improvements to exception processing.
+    Fixes SF bug #1758709, probably others.
+  * mk-constants.py: Added more DLT_ values from tcpdump.org.
+  * Regenerated pcap.c and pcap.py using SWIG 1.3.31.
+
 2008-01-25  Wim Lewis  <wiml@hhhh.org>
 
   pylibpcap-0.6.2, 25 January 2008
