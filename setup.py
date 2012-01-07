@@ -1,6 +1,6 @@
 #! /usr/bin/env python
 
-# $Id: setup.py,v 1.17 2012/01/06 00:13:13 wiml Exp $
+# $Id: setup.py,v 1.18 2012/01/07 09:10:53 wiml Exp $
 
 import sys
 import distutils.command.build
@@ -50,6 +50,13 @@ include_dirs = [ ]
 sourcefiles += ["pcap_interface.c","exception.c","error.c"]
 
 
+try:
+    execfile
+except:
+    # Python 3.x doesn't have execfile; this is a reasonable facsimile.
+    def execfile(f):
+        exec(compile(open(f).read(), f, 'exec'))
+
 # I modified build_ext to add -shadow to the swig line.
 # yay!
 
@@ -59,7 +66,7 @@ class pcapclean(clean):
         #if self.all:
         for derived in self.other_derived:
             if os.access(derived, os.F_OK):
-                print derived
+                print (derived)
                 self.announce('removing: %s' % derived)
                 if not self.dry_run:
                     os.unlink(derived)
@@ -134,7 +141,7 @@ class pcap_build_ext(build_ext):
     # swig_sources ()
 
     def find_swig(self):
-        if os.environ.has_key('SWIG'):
+        if 'SWIG' in os.environ:
             return os.environ['SWIG']
         return build_ext.find_swig(self)
 #
@@ -143,12 +150,12 @@ class build_shadowed (distutils.command.build.build):
     # this moves the 'build_py' subcommand to the end, so it happens
     # after the pcap.py module has been created by the build_ext command
     sub_commands = distutils.command.build.build.sub_commands
-    sub_commands  = filter(lambda x: x[0] != 'build_py', sub_commands) + \
-                    filter(lambda x: x[0] == 'build_py', sub_commands)
+    sub_commands  = list(filter(lambda x: x[0] != 'build_py', sub_commands)) + \
+                    list(filter(lambda x: x[0] == 'build_py', sub_commands))
 
 
 defines = [ ('SWIG_COBJECT_TYPES', None) ] + \
-          map(lambda x: (x, None), config_defines)
+          list(map(lambda x: (x, None), config_defines))
 
 if libpcap_dir is None:
     pcap_extension = Extension("_pcapmodule",
