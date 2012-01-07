@@ -77,6 +77,13 @@ static int check_noctx(pcapObject *self)
   return 0;
 }
 
+#if PY_VERSION_HEX >= 0x03000000
+#define BUILDVALUE_BYTES "y#"
+#elif PY_VERSION_HEX >= 0x02060000
+#define BUILDVALUE_BYTES "z#"
+#else
+#define BUILDVALUE_BYTES "s#"
+#endif
 
 /*
 pcapObject *new_pcapObject(const char *device, int snaplen, int promisc, int to_ms)
@@ -305,7 +312,10 @@ PyObject *pcapObject_next(pcapObject *self)
     return Py_None;
   }
 
-  outObject = Py_BuildValue("is#f", header.len, buf, header.caplen,
+
+
+  outObject = Py_BuildValue("i"BUILDVALUE_BYTES"f",
+                            header.len, buf, header.caplen,
 			    header.ts.tv_sec*1.0+header.ts.tv_usec*1.0/1e6);
   return outObject;
 
@@ -344,7 +354,11 @@ PyObject *pcapObject_datalinks(pcapObject *self)
     return NULL;
   }
   for(i = 0; i < linkcount; i ++) {
+#if PY_VERSION_HEX >= 0x03000000
+    PyObject *linktype = PyLong_FromLong( links[i] );
+#else
     PyObject *linktype = PyInt_FromLong( (long) (links[i]) );
+#endif
     if (!linktype) {
       Py_DECREF(result);
       free(links);
@@ -494,7 +508,11 @@ string_from_sockaddr_dl(struct sockaddr_dl *sdl)
       bufpos[2] = ':';
   }
   
+#if PY_VERSION_HEX >= 0x03000000
+  str = PyUnicode_FromString(buf);
+#else
   str = PyString_FromString(buf);
+#endif
   free(buf);
   return str;
 }
@@ -550,7 +568,11 @@ PyObject *packed_sockaddr(struct sockaddr *sa)
   }
   
   length = SOCKADDR_LENGTH(sa);
+#if PY_VERSION_HEX >= 0x03000000
+  return PyBytes_FromStringAndSize( (const char *)sa, length );
+#else
   return PyString_FromStringAndSize( (const char *)sa, length );
+#endif
 }
 
 PyObject *object_from_sockaddr(struct sockaddr *sa)
@@ -587,7 +609,11 @@ PyObject *object_from_sockaddr(struct sockaddr *sa)
     PyErr_Format(PyExc_Exception, "unsupported address family %d", sa->sa_family);
     return NULL;
     */
+#if PY_VERSION_HEX >= 0x03000000
+    return PyUnicode_FromFormat("<AF %d>", sa->sa_family);
+#else
     return PyString_FromFormat("<AF %d>", sa->sa_family);
+#endif
   case AF_UNSPEC:
     Py_INCREF(Py_None);
     return Py_None;
@@ -600,7 +626,11 @@ PyObject *object_from_sockaddr(struct sockaddr *sa)
       return NULL;
   }
   
+#if PY_VERSION_HEX >= 0x03000000
+  result = PyUnicode_FromString(buf);
+#else
   result = PyString_FromString(buf);
+#endif
   free(buf);
   
   return result;
@@ -744,7 +774,11 @@ PyObject *aton(const char *cp)
     throw_exception(errno, "inet_aton()");
     return NULL;
   }
+#if PY_VERSION_HEX >= 0x03000000
+  out = PyLong_FromUnsignedLong(addr.s_addr);
+#else
   out=PyInt_FromLong(addr.s_addr);
+#endif
   return out;
 }
 
@@ -773,7 +807,8 @@ void PythonCallBack(u_char *user_data,
   /* Re-acquire the GIL and restore the Python thread state */
   PyEval_RestoreThread(context->threadstate);
 
-  arglist = Py_BuildValue("is#f", header->len, packetdata, header->caplen,
+  arglist = Py_BuildValue("i"BUILDVALUE_BYTES"f",
+                          header->len, packetdata, header->caplen,
 			  header->ts.tv_sec*1.0+header->ts.tv_usec*1.0e-6);
   result = PyObject_CallObject(context->func, arglist);
   Py_DECREF(arglist);
