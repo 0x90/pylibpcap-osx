@@ -1,6 +1,6 @@
 
 /*
- * $Id: pcap.i,v 1.21 2012/01/06 08:45:24 wiml Exp $
+ * $Id: pcap.i,v 1.22 2012/01/07 09:15:19 wiml Exp $
  * Python libpcap
  * Copyright (C) 2001,2002, David Margrave
  * Copyright (C) 2004,2007 William Lewis
@@ -26,6 +26,29 @@ static char _doc_##NAME[] = VALUE;\
 
 #define __doc__ pcap_doc
 
+
+/* If we know the incoming string is a filename, make sure
+   it's in the filesystem's expected encoding. */
+%typemap(in) const char *filename (PyObject *coded) %{
+#if PY_VERSION_HEX >= 0x03020000
+  coded = PyUnicode_EncodeFSDefault($input);
+  if (!coded) { SWIG_fail; }
+  $1 = PyBytes_AsString(coded);
+  if (!$1) { SWIG_fail; }
+#else
+  /* For Python 2.x, just expect non-Unicode strings. */
+  coded = $input;
+  $1 = PyString_AsString(coded);
+  if (!$1) { SWIG_fail; }
+#endif
+%}
+%typemap(argout) const char *filename %{
+#if PY_VERSION_HEX >= 0x03020000
+  /* According to the docs, "there are plenty of opportunities
+     to break the universe here" */
+  Py_DECREF(coded$argnum);
+#endif
+%}
 
 %{
 #include <pcap.h>
@@ -88,11 +111,15 @@ del dltname, dltvalue
 }
 
 /* functions taking IPv4 addresses as unsigned 32-bit integers */
-%typemap(in) in_addr_t {
+%typemap(in) in_addr_t %{
+
+#if PY_VERSION_HEX < 0x03000000
   if (PyInt_CheckExact($input)) {
     $1 = (unsigned long)PyInt_AS_LONG($input);
-  } else if (!PyNumber_Check($input)) {
-    PyErr_SetString(PyExc_TypeError, "argument must be an integer");
+  } else
+#endif
+         if (!PyNumber_Check($input)) {
+    PyErr_SetString(PyExc_TypeError, "ipv4 argument must be an integer");
     SWIG_fail;
   } else {
     PyObject *longobject = PyNumber_Long($input);
@@ -101,7 +128,7 @@ del dltname, dltvalue
     Py_DECREF(longobject);
     if (PyErr_Occurred()) { SWIG_fail; } /* In case AsUnsignedLong() failed */
   }
-}
+%}
 
 %exception {
   $function
