@@ -77,16 +77,9 @@ static int check_noctx(pcapObject *self)
   return 0;
 }
 
-#if PY_VERSION_HEX >= 0x03000000
-#define BUILDVALUE_BYTES "y#"
-#elif PY_VERSION_HEX >= 0x02060000
-#define BUILDVALUE_BYTES "z#"
-#else
-#define BUILDVALUE_BYTES "s#"
-#endif
 
 /*
-pcapObject *new_pcapObject(const char *device, int snaplen, int promisc, int to_ms)
+pcapObject *new_pcapObject(char *device, int snaplen, int promisc, int to_ms)
 */
 pcapObject *new_pcapObject(void)
 {
@@ -114,7 +107,7 @@ void delete_pcapObject(pcapObject *self)
   free(self);
 }
 
-void pcapObject_open_live(pcapObject *self, const char *device, int snaplen,
+void pcapObject_open_live(pcapObject *self, char *device, int snaplen,
                           int promisc, int to_ms)
 {
   char ebuf[PCAP_ERRBUF_SIZE];
@@ -150,7 +143,7 @@ void pcapObject_open_dead(pcapObject *self, int linktype, int snaplen)
     self->pcap = opened;
 }
 
-void pcapObject_open_offline(pcapObject *self, const char *filename)
+void pcapObject_open_offline(pcapObject *self, char *fname)
 {
   char ebuf[PCAP_ERRBUF_SIZE];
   pcap_t *opened;
@@ -159,7 +152,7 @@ void pcapObject_open_offline(pcapObject *self, const char *filename)
     return;
 
   Py_BEGIN_ALLOW_THREADS
-  opened = pcap_open_offline(filename, ebuf);
+  opened = pcap_open_offline(fname, ebuf);
   Py_END_ALLOW_THREADS
 
   if (!opened)
@@ -169,7 +162,7 @@ void pcapObject_open_offline(pcapObject *self, const char *filename)
 }
 
 
-void pcapObject_dump_open(pcapObject *self, const char *filename)
+void pcapObject_dump_open(pcapObject *self, char *fname)
 {
   if (check_ctx(self))
     return;
@@ -177,7 +170,7 @@ void pcapObject_dump_open(pcapObject *self, const char *filename)
   Py_BEGIN_ALLOW_THREADS
   if (self->pcap_dumper)
     pcap_dump_close(self->pcap_dumper);
-  self->pcap_dumper = pcap_dump_open(self->pcap, filename);
+  self->pcap_dumper = pcap_dump_open(self->pcap, fname);
   Py_END_ALLOW_THREADS
 
   if (!self->pcap_dumper)
@@ -208,7 +201,7 @@ int pcapObject_getnonblock(pcapObject *self)
   return status;
 }
 
-void pcapObject_setfilter(pcapObject *self, const char *str,
+void pcapObject_setfilter(pcapObject *self, char *str,
                           int optimize, in_addr_t netmask)
 {
   struct bpf_program bpfprog;
@@ -312,10 +305,7 @@ PyObject *pcapObject_next(pcapObject *self)
     return Py_None;
   }
 
-
-
-  outObject = Py_BuildValue("i"BUILDVALUE_BYTES"f",
-                            header.len, buf, header.caplen,
+  outObject = Py_BuildValue("is#f", header.len, buf, header.caplen,
 			    header.ts.tv_sec*1.0+header.ts.tv_usec*1.0/1e6);
   return outObject;
 
@@ -354,11 +344,7 @@ PyObject *pcapObject_datalinks(pcapObject *self)
     return NULL;
   }
   for(i = 0; i < linkcount; i ++) {
-#if PY_VERSION_HEX >= 0x03000000
-    PyObject *linktype = PyLong_FromLong( links[i] );
-#else
     PyObject *linktype = PyInt_FromLong( (long) (links[i]) );
-#endif
     if (!linktype) {
       Py_DECREF(result);
       free(links);
@@ -404,6 +390,30 @@ int pcapObject_minor_version(pcapObject *self)
     return 0;
 
   return pcap_minor_version(self->pcap);
+}
+
+int pcapObject_pcap_set_rfmon(pcapObject *self, char *device, int rfmon)
+{
+  char ebuf[PCAP_ERRBUF_SIZE];
+  int status;
+  pcap_t *opened;
+
+  Py_BEGIN_ALLOW_THREADS
+  opened = pcap_create(device, ebuf);
+  Py_END_ALLOW_THREADS
+
+  if ( opened != NULL )
+    status = pcap_set_rfmon(opened, rfmon);
+
+  if (status == 0)
+    self->pcap = opened;
+
+  return status;
+}
+
+int pcapObject_pcap_activate(pcapObject *self)
+{
+  return pcap_activate(self->pcap);
 }
 
 
@@ -508,11 +518,7 @@ string_from_sockaddr_dl(struct sockaddr_dl *sdl)
       bufpos[2] = ':';
   }
   
-#if PY_VERSION_HEX >= 0x03000000
-  str = PyUnicode_FromString(buf);
-#else
   str = PyString_FromString(buf);
-#endif
   free(buf);
   return str;
 }
@@ -568,11 +574,7 @@ PyObject *packed_sockaddr(struct sockaddr *sa)
   }
   
   length = SOCKADDR_LENGTH(sa);
-#if PY_VERSION_HEX >= 0x03000000
-  return PyBytes_FromStringAndSize( (const char *)sa, length );
-#else
   return PyString_FromStringAndSize( (const char *)sa, length );
-#endif
 }
 
 PyObject *object_from_sockaddr(struct sockaddr *sa)
@@ -609,11 +611,7 @@ PyObject *object_from_sockaddr(struct sockaddr *sa)
     PyErr_Format(PyExc_Exception, "unsupported address family %d", sa->sa_family);
     return NULL;
     */
-#if PY_VERSION_HEX >= 0x03000000
-    return PyUnicode_FromFormat("<AF %d>", sa->sa_family);
-#else
     return PyString_FromFormat("<AF %d>", sa->sa_family);
-#endif
   case AF_UNSPEC:
     Py_INCREF(Py_None);
     return Py_None;
@@ -626,11 +624,7 @@ PyObject *object_from_sockaddr(struct sockaddr *sa)
       return NULL;
   }
   
-#if PY_VERSION_HEX >= 0x03000000
-  result = PyUnicode_FromString(buf);
-#else
   result = PyString_FromString(buf);
-#endif
   free(buf);
   
   return result;
@@ -745,7 +739,7 @@ PyObject *findalldevs(int unpack)
 /* warning:  the libpcap that ships with RH 6.2 seems to have a buggy
    pcap_lookupnet */
 
-PyObject *lookupnet(const char *device)
+PyObject *lookupnet(char *device)
 {
   bpf_u_int32 net=0, mask=0;
   int status;
@@ -763,7 +757,7 @@ PyObject *lookupnet(const char *device)
   return Py_BuildValue("ii", net, mask);
 }
 
-PyObject *aton(const char *cp)
+PyObject *aton(char *cp)
 {
   PyObject *out;
   struct in_addr addr;
@@ -774,11 +768,7 @@ PyObject *aton(const char *cp)
     throw_exception(errno, "inet_aton()");
     return NULL;
   }
-#if PY_VERSION_HEX >= 0x03000000
-  out = PyLong_FromUnsignedLong(addr.s_addr);
-#else
   out=PyInt_FromLong(addr.s_addr);
-#endif
   return out;
 }
 
@@ -807,8 +797,7 @@ void PythonCallBack(u_char *user_data,
   /* Re-acquire the GIL and restore the Python thread state */
   PyEval_RestoreThread(context->threadstate);
 
-  arglist = Py_BuildValue("i"BUILDVALUE_BYTES"f",
-                          header->len, packetdata, header->caplen,
+  arglist = Py_BuildValue("is#f", header->len, packetdata, header->caplen,
 			  header->ts.tv_sec*1.0+header->ts.tv_usec*1.0e-6);
   result = PyObject_CallObject(context->func, arglist);
   Py_DECREF(arglist);
