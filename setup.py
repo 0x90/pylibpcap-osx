@@ -1,6 +1,6 @@
 #! /usr/bin/env python
 
-# $Id: setup.py,v 1.18 2012/01/07 09:10:53 wiml Exp $
+# $Id: setup.py,v 1.17 2012/01/06 00:13:13 wiml Exp $
 
 import sys
 import distutils.command.build
@@ -15,8 +15,8 @@ config_defines = [ ]
 
 # uncomment this line and comment out the next one if you want to build
 # pcap.c from the SWIG interface
-sourcefiles = ["mk-constants.py", "pcap.i"]
-# sourcefiles = ["pcap.c"]
+# sourcefiles = ["mk-constants.py", "pcap.i"]
+sourcefiles = ["pcap.c"]
 
 # if you are building against a non-installed version of libpcap,
 # specify its directory here, otherwise set this to None
@@ -50,13 +50,6 @@ include_dirs = [ ]
 sourcefiles += ["pcap_interface.c","exception.c","error.c"]
 
 
-try:
-    execfile
-except:
-    # Python 3.x doesn't have execfile; this is a reasonable facsimile.
-    def execfile(f):
-        exec(compile(open(f).read(), f, 'exec'))
-
 # I modified build_ext to add -shadow to the swig line.
 # yay!
 
@@ -66,7 +59,7 @@ class pcapclean(clean):
         #if self.all:
         for derived in self.other_derived:
             if os.access(derived, os.F_OK):
-                print (derived)
+                print derived
                 self.announce('removing: %s' % derived)
                 if not self.dry_run:
                     os.unlink(derived)
@@ -141,7 +134,7 @@ class pcap_build_ext(build_ext):
     # swig_sources ()
 
     def find_swig(self):
-        if 'SWIG' in os.environ:
+        if os.environ.has_key('SWIG'):
             return os.environ['SWIG']
         return build_ext.find_swig(self)
 #
@@ -150,12 +143,12 @@ class build_shadowed (distutils.command.build.build):
     # this moves the 'build_py' subcommand to the end, so it happens
     # after the pcap.py module has been created by the build_ext command
     sub_commands = distutils.command.build.build.sub_commands
-    sub_commands  = list(filter(lambda x: x[0] != 'build_py', sub_commands)) + \
-                    list(filter(lambda x: x[0] == 'build_py', sub_commands))
+    sub_commands  = filter(lambda x: x[0] != 'build_py', sub_commands) + \
+                    filter(lambda x: x[0] == 'build_py', sub_commands)
 
 
 defines = [ ('SWIG_COBJECT_TYPES', None) ] + \
-          list(map(lambda x: (x, None), config_defines))
+          map(lambda x: (x, None), config_defines)
 
 if libpcap_dir is None:
     pcap_extension = Extension("_pcapmodule",
@@ -180,7 +173,7 @@ else:
 
 setup (# Distribution meta-data
         name = "pylibpcap",
-        version = "0.6.3",
+        version = "0.6.4",
         license = "BSD",
         description = 'pylibpcap is a python module for the libpcap packet capture library.',
         long_description = 'pylibpcap is a python module for the libpcap packet capture library.',
