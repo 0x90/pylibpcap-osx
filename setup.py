@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#!/usr/bin/env python
 
 # $Id: setup.py,v 1.17 2012/01/06 00:13:13 wiml Exp $
 
